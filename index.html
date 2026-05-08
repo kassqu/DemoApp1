@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>KasQu</title>
+  <title>KassQu</title>
   <link rel="icon" type="image/png" href="logo.png?v=2" />
   
   <!-- Tailwind CSS -->
@@ -99,7 +99,7 @@
       const [users, setUsers] = useState([]); 
       
       const [storeConfig, setStoreConfig] = useState({ 
-        name: 'KasQu', 
+        name: 'KassQu', 
         address: 'Alamat Toko', 
         phone: '0812345678', 
         footer: 'Terima Kasih',
@@ -117,7 +117,7 @@
       };
       
       useEffect(() => {
-        const savedRole = localStorage.getItem('kasqu_role');
+        const savedRole = localStorage.getItem('kassqu_role');
         if (savedRole) setUserRole(savedRole);
 
         const loadData = async () => {
@@ -144,12 +144,12 @@
 
       const handleLoginSuccess = (role) => {
         setUserRole(role);
-        localStorage.setItem('kasqu_role', role);
+        localStorage.setItem('kassqu_role', role);
       };
 
       const handleLogout = () => {
         setUserRole(null);
-        localStorage.removeItem('kasqu_role');
+        localStorage.removeItem('kassqu_role');
       };
 
       if (loading) return (
@@ -160,7 +160,7 @@
             <div className="bg-indigo-600 w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/50">
               <Icon name="point_of_sale" className="text-white text-3xl" />
             </div>
-            <h1 className="text-4xl font-black tracking-widest drop-shadow-md">KASQU</h1>
+            <h1 className="text-4xl font-black tracking-widest drop-shadow-md">KASSQU</h1>
           </div>
           
           <p className="text-sm opacity-80 mt-4">Menyiapkan toko Anda...</p>
@@ -269,7 +269,7 @@
                 <Icon name="point_of_sale" className="text-white text-4xl" />
               </div>
             )}
-            <h1 className="text-3xl font-black text-slate-800 tracking-tight mb-1">{storeConfig?.name || 'KasQu'}</h1>
+            <h1 className="text-3xl font-black text-slate-800 tracking-tight mb-1">{storeConfig?.name || 'kassqu'}</h1>
             <p className="text-slate-500 text-sm mb-8">Pilih akses & masukkan PIN</p>
 
             <form onSubmit={handleLogin} className="space-y-6">
@@ -442,7 +442,7 @@
                     </div>
                   )}
                   <h2 className="text-lg md:text-xl font-black tracking-tight truncate max-w-[150px] md:max-w-[250px]">
-                    {storeConfig?.name || 'KasQu'}
+                    {storeConfig?.name || 'kassqu'}
                   </h2>
                 </div>
                 <div className="flex items-center gap-2 md:gap-3 shrink-0">
@@ -777,7 +777,7 @@
                   <Icon name="point_of_sale" className="text-white text-sm" />
                 </div>
               )}
-              <h2 className="text-xl font-black text-white truncate">Admin {storeConfig?.name || 'KasQu'}</h2>
+              <h2 className="text-xl font-black text-white truncate">Admin {storeConfig?.name || 'KassQu'}</h2>
             </div>
             <nav className="flex-1 p-4 space-y-2 overflow-y-auto flex md:flex-col overflow-x-auto hide-scrollbar">
               {tabs.map(t => (
