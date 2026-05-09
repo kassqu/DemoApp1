@@ -42,8 +42,8 @@
 
   <style>
     body {
-      margin: 0; padding: 0;
-      background-color: #f8fafc; 
+      height: 100%; margin: 0; padding: 0;
+      background-color: #0f172a; 
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       overscroll-behavior-y: none;
     }
@@ -51,9 +51,13 @@
     /* BACKGROUND LOGIN & LOADING FULL SCREEN ANTI-GESER */
     .full-immersive {
       position: fixed;
-      inset: 0;
+      /*inset: 0;*/
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
       width: 100vw;
-      height: 100dvh; /* Mengikuti tinggi layar HP secara dinamis */
+      height: 100%; /* Mengikuti tinggi layar HP secara dinamis */
       z-index: 50; /* Sesuai perbaikan sebelumnya agar pop-up muncul di depan */
       background-image: url('https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1974&auto=format&fit=crop');
       background-size: cover;
