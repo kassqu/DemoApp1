@@ -205,7 +205,7 @@
               }}
             />
           ) : (
-            <Dashboard 
+            <AdminDashboard 
               products={products} setProducts={setProducts} 
               categories={categories} setCategories={setCategories}
               transactions={transactions} storeConfig={storeConfig} setStoreConfig={setStoreConfig}
@@ -797,7 +797,7 @@
                     <Icon name="point_of_sale" className="text-white text-sm" />
                   </div>
                 )}
-                <h2 className="text-md md:text-xl font-black text-white truncate">Admin {storeConfig?.name || 'KassQu'}</h2>
+                <h2 className="text-lg md:text-xl font-black text-white">Admin {storeConfig?.name || 'KasQu'}</h2>
               </div>
               
               {/* TOMBOL LOGOUT HP (Nangkring di Kanan Atas) */}
@@ -1403,13 +1403,7 @@
         <div className="space-y-6">
           <div className="flex justify-between items-center bg-white p-6 rounded-2xl border border-slate-100">
             <h2 className="text-2xl font-bold">Pegawai & PIN</h2>
-            <button 
-              onClick={() => openModal()} 
-              className="bg-indigo-600 text-white px-3 md:px-6 py-2 rounded-xl font-bold hover:bg-indigo-700 shadow-md shadow-indigo-200 flex items-center gap-2 transition-all active:scale-95"
-            >
-              <Icon name="person_add" className="text-[18px] md:text-sm" /> 
-              <span className="hidden md:inline">Tambah Staff</span>
-            </button>
+            <button onClick={() => openModal()} className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2"><Icon name="person_add" /> Tambah Staff</button>
           </div>
           <div className="bg-white rounded-2xl border border-slate-100 overflow-x-auto shadow-sm hide-scrollbar">
             <table className="w-full text-left text-sm whitespace-nowrap min-w-[500px]">
