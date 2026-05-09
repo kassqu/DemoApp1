@@ -205,7 +205,7 @@
               }}
             />
           ) : (
-            <AdminDashboard 
+            <Dashboard 
               products={products} setProducts={setProducts} 
               categories={categories} setCategories={setCategories}
               transactions={transactions} storeConfig={storeConfig} setStoreConfig={setStoreConfig}
@@ -775,18 +775,18 @@
       const [activeTab, setActiveTab] = useState('report');
 
       const tabs = [
-        { id: 'report', label: 'Laporan', icon: 'monitoring' },
-        { id: 'products', label: 'Produk', icon: 'inventory_2' },
-        { id: 'balances', label: 'Kas', icon: 'payments' },
-        { id: 'users', label: 'Pegawai', icon: 'group' },
-        { id: 'settings', label: 'Toko', icon: 'settings' }
+        { id: 'report', label: 'Laporan Keuangan', icon: 'monitoring' },
+        { id: 'products', label: 'Manajemen Produk', icon: 'inventory_2' },
+        { id: 'balances', label: 'Kas & Modal Laci', icon: 'payments' },
+        { id: 'users', label: 'Pegawai & PIN', icon: 'group' },
+        { id: 'settings', label: 'Pengaturan Toko', icon: 'settings' }
       ];
 
       return (
         // Tambahin overflow-hidden dan max-w-full biar layar gak bisa geser kanan kiri
         <div className="flex flex-col md:flex-row h-[100dvh] w-full max-w-[100vw] bg-slate-50 overflow-hidden">
           
-          <aside className="w-full md:w-64 bg-slate-900 text-white flex flex-col shrink-0 z-20 shadow-md">
+          <aside className="w-full md:w-72 bg-slate-900 text-white flex flex-col shrink-0 z-20 shadow-md">
             {/* Bagian Header Admin */}
             <div className="p-4 md:p-6 border-b border-slate-800 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
@@ -797,7 +797,7 @@
                     <Icon name="point_of_sale" className="text-white text-sm" />
                   </div>
                 )}
-                <h2 className="text-lg md:text-xl font-black text-white truncate">Admin {storeConfig?.name || 'KasQu'}</h2>
+                <h2 className="text-md md:text-xl font-black text-white truncate">Admin {storeConfig?.name || 'KassQu'}</h2>
               </div>
               
               {/* TOMBOL LOGOUT HP (Nangkring di Kanan Atas) */}
