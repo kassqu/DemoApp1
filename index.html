@@ -444,7 +444,7 @@
           {/* AREA KIRI: PRODUK */}
           <div className="flex-1 flex flex-col h-full overflow-hidden no-print relative">
             
-            <div className="bg-indigo-700 text-white pb-4 shadow-md z-10 shrink-0 md:rounded-br-[2rem]">
+            <div className="bg-indigo-700 text-white pb-4 shadow-md z-10 shrink-0">
               
               <div className="px-4 md:px-6 py-3 md:py-4 flex items-center justify-between">
                 <div className="flex items-center gap-3 shrink-0">
@@ -557,7 +557,7 @@
           </div>
 
           {/* AREA KANAN: KERANJANG */}
-          <div className={`${isMobileCartOpen ? 'fixed inset-0 z-50 flex' : 'hidden md:flex'} w-full md:w-96 bg-white flex-col shadow-2xl border-l border-slate-200 no-print`}>
+          <div className={`${isMobileCartOpen ? 'fixed inset-0 z-50 flex' : 'hidden md:flex'} w-full md:w-96 bg-white flex-col shadow-2xl md:border-l border-slate-200 no-print`}>
             <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-indigo-600 text-white md:bg-white md:text-slate-800">
               <h2 className="text-xl font-bold flex items-center gap-2"><Icon name="shopping_cart" /> Pesanan Saat Ini</h2>
               {isMobileCartOpen && <button onClick={() => setIsMobileCartOpen(false)}><Icon name="close" /></button>}
@@ -985,10 +985,19 @@
               <h2 className="text-2xl font-bold text-slate-800">Laporan Keuangan</h2>
               <p className="text-slate-500 text-sm">Ringkasan penjualan, modal, dan laba bersih.</p>
             </div>
-            <div className="flex gap-2 bg-slate-100 p-1 rounded-xl">
-              {[{id:'today', label:'Hari Ini'}, {id:'week', label:'Minggu Ini'}, {id:'month', label:'Bulan Ini'}, {id:'all', label:'Semua'}].map(f => (
-                <button key={f.id} onClick={() => setFilter(f.id)} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${filter === f.id ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{f.label}</button>
-              ))}
+            <div className="relative bg-slate-100 rounded-xl flex items-center border border-slate-200 shrink-0">
+              <Icon name="calendar_month" className="text-indigo-500 absolute left-3 text-[18px] pointer-events-none" />
+              <select 
+                value={filter} 
+                onChange={(e) => setFilter(e.target.value)} 
+                className="w-full pl-10 pr-8 py-2.5 bg-transparent text-sm font-bold text-slate-700 outline-none appearance-none cursor-pointer"
+              >
+                <option value="today">Hari Ini</option>
+                <option value="week">Minggu Ini</option>
+                <option value="month">Bulan Ini</option>
+                <option value="all">Semua</option>
+              </select>
+              <Icon name="expand_more" className="text-slate-500 absolute right-2 pointer-events-none" />
             </div>
           </div>
 
@@ -1184,15 +1193,18 @@
         <div className="space-y-6">
           <div className="flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
             <div><h2 className="text-2xl font-bold text-slate-800">Manajemen Produk</h2></div>
-            <div className="flex gap-2">
-              <button onClick={() => setIsCategoryModalOpen(true)} className="bg-slate-100 text-slate-700 px-4 py-2 rounded-xl font-bold hover:bg-slate-200 flex items-center gap-2"><Icon name="category" className="text-sm"/> Kategori</button>
-              <button onClick={() => openModal()} className="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-indigo-700 shadow-md shadow-indigo-200 flex items-center gap-2"><Icon name="add" className="text-sm"/> Produk Baru</button>
+            <div className="flex gap-2 shrink-0">
+              <button onClick={() => setIsCategoryModalOpen(true)} className="bg-slate-100 text-slate-700 px-3 md:px-4 py-2 rounded-xl font-bold hover:bg-slate-200 flex items-center gap-2">
+                <Icon name="category" className="text-[18px] md:text-sm"/> <span className="hidden md:inline">Kategori</span>
+              </button>
+              <button onClick={() => openModal()} className="bg-indigo-600 text-white px-3 md:px-4 py-2 rounded-xl font-bold hover:bg-indigo-700 shadow-md shadow-indigo-200 flex items-center gap-2">
+                <Icon name="add" className="text-[18px] md:text-sm"/> <span className="hidden md:inline">Produk Baru</span>
+              </button>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-x-auto hide-scrollbar">
+            <table className="w-full text-left text-sm whitespace-nowrap min-w-[600px]">
                 <thead className="bg-slate-100 text-slate-500 uppercase text-xs font-bold">
                   <tr><th className="p-4">Info Produk</th><th className="p-4">Kategori</th><th className="p-4 text-right">Harga Modal</th><th className="p-4 text-right">Harga Jual</th><th className="p-4 text-center">Stok</th><th className="p-4 text-center">Aksi</th></tr>
                 </thead>
@@ -1337,7 +1349,7 @@
              <Icon name="account_balance_wallet" className="absolute -right-4 -bottom-4 text-[120px] text-white/20" />
              <div className="relative z-10">
                <p className="text-indigo-100 font-bold mb-2 tracking-widest uppercase text-sm">Saldo Laci Tunai Saat Ini</p>
-               <h3 className="text-5xl font-black mb-1">{formatRp(balances?.kembalian || 0)}</h3>
+               <h3 className="text-3xl md:text-5xl font-black mb-1 truncate">{formatRp(balances?.kembalian || 0)}</h3>
                <p className="text-sm text-indigo-100 opacity-90 mt-2">*Saldo ini otomatis bertambah setiap ada transaksi berjenis "Cash".</p>
              </div>
           </div>
