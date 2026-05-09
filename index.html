@@ -4,6 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>KassQu</title>
+  <!-- Bikin Web Bertingkah Kayak App Native -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#0f172a">
+  
   <link rel="icon" type="image/png" href="logo.png?v=2" />
   
   <!-- Tailwind CSS -->
@@ -753,47 +759,66 @@
     }
 
     // ==========================================
-    // 3. DASHBOARD ADMIN
+    // // ==========================================
+    // 3. DASHBOARD ADMIN (VERSI MOBILE OPTIMIZED)
     // ==========================================
     function AdminDashboard({ products, setProducts, categories, setCategories, transactions, storeConfig, setStoreConfig, balances, setBalances, users, setUsers, onLogout, syncToSheets }) {
       const [activeTab, setActiveTab] = useState('report');
 
       const tabs = [
-        { id: 'report', label: 'Laporan Keuangan', icon: 'monitoring' },
-        { id: 'products', label: 'Manajemen Produk', icon: 'inventory_2' },
-        { id: 'balances', label: 'Kas & Modal Laci', icon: 'payments' },
-        { id: 'users', label: 'Kelola Pengguna', icon: 'group' },
-        { id: 'settings', label: 'Pengaturan Toko', icon: 'settings' }
+        { id: 'report', label: 'Laporan', icon: 'monitoring' },
+        { id: 'products', label: 'Produk', icon: 'inventory_2' },
+        { id: 'balances', label: 'Kas', icon: 'payments' },
+        { id: 'users', label: 'Pegawai', icon: 'group' },
+        { id: 'settings', label: 'Toko', icon: 'settings' }
       ];
 
       return (
-        <div className="flex flex-col md:flex-row h-screen bg-slate-50">
-          <aside className="w-full md:w-64 bg-slate-900 text-white flex flex-col shrink-0">
-            <div className="p-6 border-b border-slate-800 flex items-center gap-3">
-              {storeConfig?.logo ? (
-                <img src={storeConfig.logo} alt="Logo" className="w-8 h-8 object-contain bg-white rounded-md p-1 shrink-0" />
-              ) : (
-                <div className="bg-indigo-600 w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
-                  <Icon name="point_of_sale" className="text-white text-sm" />
-                </div>
-              )}
-              <h2 className="text-xl font-black text-white truncate">Admin {storeConfig?.name || 'KassQu'}</h2>
+        // Tambahin overflow-hidden dan max-w-full biar layar gak bisa geser kanan kiri
+        <div className="flex flex-col md:flex-row h-[100dvh] w-full max-w-[100vw] bg-slate-50 overflow-hidden">
+          
+          <aside className="w-full md:w-64 bg-slate-900 text-white flex flex-col shrink-0 z-20 shadow-md">
+            {/* Bagian Header Admin */}
+            <div className="p-4 md:p-6 border-b border-slate-800 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                {storeConfig?.logo ? (
+                  <img src={storeConfig.logo} alt="Logo" className="w-8 h-8 object-contain bg-white rounded-md p-1 shrink-0" />
+                ) : (
+                  <div className="bg-indigo-600 w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
+                    <Icon name="point_of_sale" className="text-white text-sm" />
+                  </div>
+                )}
+                <h2 className="text-lg md:text-xl font-black text-white truncate">Admin {storeConfig?.name || 'KasQu'}</h2>
+              </div>
+              
+              {/* TOMBOL LOGOUT HP (Nangkring di Kanan Atas) */}
+              <button onClick={onLogout} className="md:hidden bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white p-2 rounded-xl transition-all" title="Keluar">
+                <Icon name="logout" className="text-[20px]" />
+              </button>
             </div>
-            <nav className="flex-1 p-4 space-y-2 overflow-y-auto flex md:flex-col overflow-x-auto hide-scrollbar">
+
+            {/* Bagian Menu Navigasi */}
+            <nav className="flex p-2 md:p-4 gap-1 md:space-y-2 overflow-x-auto md:overflow-y-auto flex-row md:flex-col hide-scrollbar bg-slate-900 border-b border-slate-800 md:border-none">
               {tabs.map(t => (
-                <button key={t.id} onClick={() => setActiveTab(t.id)} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all whitespace-nowrap ${activeTab === t.id ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                  <Icon name={t.icon} /> <span className="font-bold">{t.label}</span>
+                <button key={t.id} onClick={() => setActiveTab(t.id)} 
+                  className={`flex items-center justify-center md:justify-start gap-2 px-4 py-3 rounded-xl transition-all whitespace-nowrap flex-1 md:flex-none ${activeTab === t.id ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                  <Icon name={t.icon} className="text-xl md:text-[18px]" /> 
+                  {/* Teks menu hanya muncul di layar PC/iPad (md), di HP sembunyi */}
+                  <span className="font-bold text-sm hidden md:inline">{t.label}</span>
                 </button>
               ))}
             </nav>
-            <div className="p-4 border-t border-slate-800">
+
+            {/* TOMBOL LOGOUT PC (Tetap di bawah kalau di PC) */}
+            <div className="hidden md:block p-4 border-t border-slate-800 mt-auto">
               <button onClick={onLogout} className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-all font-bold">
                 <Icon name="logout" /> Keluar
               </button>
             </div>
           </aside>
 
-          <main className="flex-1 overflow-y-auto p-4 md:p-8">
+          {/* Area Konten Utama (Harus overflow-y-auto dan overflow-x-hidden) */}
+          <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 w-full">
             {activeTab === 'report' && <AdminReport transactions={transactions} storeConfig={storeConfig} />}
             {activeTab === 'products' && <AdminProducts products={products} setProducts={setProducts} categories={categories} setCategories={setCategories} syncToSheets={syncToSheets} />}
             {activeTab === 'balances' && <AdminBalances balances={balances} setBalances={setBalances} syncToSheets={syncToSheets} />}
@@ -803,7 +828,6 @@
         </div>
       );
     }
-
     // --- KOMPONEN PIE CHART (BARU) ---
     function PieChart({ data, labels, title, colors, isCurrency = false }) {
       const chartRef = useRef(null);
@@ -1361,8 +1385,8 @@
             <h2 className="text-2xl font-bold">Pegawai & PIN</h2>
             <button onClick={() => openModal()} className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2"><Icon name="person_add" /> Tambah Staff</button>
           </div>
-          <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
-            <table className="w-full text-left text-sm">
+          <div className="bg-white rounded-2xl border border-slate-100 overflow-x-auto shadow-sm hide-scrollbar">
+            <table className="w-full text-left text-sm whitespace-nowrap min-w-[500px]">
               <thead className="bg-slate-50 text-slate-400 uppercase text-[10px] font-black tracking-widest">
                 <tr><th className="p-4">Peran/Kode</th><th className="p-4">Nama</th><th className="p-4">PIN</th><th className="p-4 text-center">Status</th><th className="p-4 text-center">Aksi</th></tr>
               </thead>
