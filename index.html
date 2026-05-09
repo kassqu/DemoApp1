@@ -904,21 +904,37 @@
 
     // --- KOMPONEN LAPORAN ---
     function AdminReport({ transactions, storeConfig }) {
-      const [filter, setFilter] = useState('today'); 
-
-      const filteredTransactions = useMemo(() => {
+        const [filter, setFilter] = useState('today');
+        // Inisialisasi tanggal mulai dan selesai ke hari ini
+        const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+        const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+      
+        const filteredTransactions = useMemo(() => {
         const now = new Date();
         return transactions.filter(trx => {
           const d = new Date(trx.date);
+          
+          // Logika Pilihan Cepat
           if (filter === 'today') return d.toDateString() === now.toDateString();
           if (filter === 'week') {
-            const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+            const startOfWeek = new Date();
+            startOfWeek.setDate(now.getDate() - now.getDay());
+            startOfWeek.setHours(0, 0, 0, 0);
             return d >= startOfWeek;
           }
           if (filter === 'month') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-          return true; 
+          
+          // Logika Kalender Kustom
+          if (filter === 'custom') {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            start.setHours(0, 0, 0, 0);
+            end.setHours(23, 59, 59, 999);
+            return d >= start && d <= end;
+          }
+          return true;
         });
-      }, [transactions, filter]);
+      }, [transactions, filter, startDate, endDate]);
 
       const calcSummary = (trxs) => trxs.reduce((acc, trx) => {
         acc.omzet += trx.total;
@@ -984,19 +1000,41 @@
               <h2 className="text-2xl font-bold text-slate-800">Laporan Keuangan</h2>
               <p className="text-slate-500 text-sm">Ringkasan penjualan, modal, dan laba bersih.</p>
             </div>
-            <div className="relative bg-slate-100 rounded-xl flex items-center border border-slate-200 shrink-0">
-              <Icon name="calendar_month" className="text-indigo-500 absolute left-3 text-[18px] pointer-events-none" />
-              <select 
-                value={filter} 
-                onChange={(e) => setFilter(e.target.value)} 
-                className="w-full pl-10 pr-8 py-2.5 bg-transparent text-sm font-bold text-slate-700 outline-none appearance-none cursor-pointer"
-              >
-                <option value="today">Hari Ini</option>
-                <option value="week">Minggu Ini</option>
-                <option value="month">Bulan Ini</option>
-                <option value="all">Semua</option>
-              </select>
-              <Icon name="expand_more" className="text-slate-500 absolute right-2 pointer-events-none" />
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              {/* Dropdown Utama */}
+              <div className="relative bg-slate-100 rounded-xl flex items-center border border-slate-200 shrink-0 w-full sm:w-auto">
+                <Icon name="filter_list" className="text-indigo-500 absolute left-3 text-[18px] pointer-events-none" />
+                <select 
+                  value={filter} 
+                  onChange={(e) => setFilter(e.target.value)} 
+                  className="w-full pl-10 pr-8 py-2.5 bg-transparent text-sm font-bold text-slate-700 outline-none appearance-none cursor-pointer"
+                >
+                  <option value="today">Hari Ini</option>
+                  <option value="week">Minggu Ini</option>
+                  <option value="month">Bulan Ini</option>
+                  <option value="custom">Kalender</option>
+                </select>
+                <Icon name="expand_more" className="text-slate-500 absolute right-2 pointer-events-none" />
+              </div>
+            
+              {/* Input Tanggal (Hanya muncul jika 'Kalender' dipilih) */}
+              {filter === 'custom' && (
+                <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-indigo-100 animate-fade-in w-full sm:w-auto">
+                  <input 
+                    type="date" 
+                    value={startDate} 
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="bg-transparent text-[11px] font-bold text-slate-700 outline-none p-1 cursor-pointer"
+                  />
+                  <span className="text-slate-400 font-black">-</span>
+                  <input 
+                    type="date" 
+                    value={endDate} 
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="bg-transparent text-[11px] font-bold text-slate-700 outline-none p-1 cursor-pointer"
+                  />
+                </div>
+              )}
             </div>
           </div>
 
