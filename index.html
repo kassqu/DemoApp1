@@ -574,8 +574,7 @@
               </div>
               
               {/* Tombol Close di Paling Kanan */}
-              <button 
-                onClick={() => setIsCartOpen(false)} 
+              {isMobileCartOpen && <button onClick={() => setIsMobileCartOpen(false)}
                 className="p-2 -mr-2 hover:bg-white/20 rounded-full transition-colors flex items-center justify-center"
               >
                 <Icon name="close" className="text-2xl" />
