@@ -1,6 +1,6 @@
 {
-  "name": "Demo-App#1",
-  "short_name": "Demo-App#1",
+  "name": "DemoApp1",
+  "short_name": "DemoApp1",
   "description": "Aplikasi Kasir Modern By Fika Naka",
   "start_url": "./index.html",
   "display": "standalone",
