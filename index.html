@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>KassQu - WebApp#1</title>
+  <title>KassQu - Web App POS</title>
   
   <!-- Web App Manifest & PWA Meta Tags -->
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -63,8 +63,8 @@
     }
     .full-immersive::before {
       content: ""; position: absolute; inset: 0;
-      background: rgba(15, 23, 42, 0.7);
-      backdrop-filter: blur(3px);
+      background: rgba(15, 23, 42, 0.7); 
+      backdrop-filter: blur(4px);
       z-index: -1;
     }
 
@@ -249,6 +249,10 @@
                   });
                 }
               }}
+              onDeleteTransaction={(id) => {
+                setTransactions(prev => prev.filter(t => t.id !== id));
+                syncToGoogleSheets('DELETE_TRANSACTION', { id });
+              }}
             />
           ) : (
             <AdminDashboard 
@@ -369,7 +373,7 @@
     // ==========================================
     // 2. DASHBOARD KASIR
     // ==========================================
-    function KasirDashboard({ products, categories, storeConfig, transactions, onLogout, onTransactionSuccess }) {
+    function KasirDashboard({ products, categories, storeConfig, transactions, onLogout, onTransactionSuccess, onDeleteTransaction }) {
       const [cart, setCart] = useState([]);
       const [showPayment, setShowPayment] = useState(false);
       const [paymentMethod, setPaymentMethod] = useState('Cash');
@@ -379,6 +383,14 @@
       const [lastInvoice, setLastInvoice] = useState(null);
       const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
       const [showHistory, setShowHistory] = useState(false);
+      const [currentQueueNo, setCurrentQueueNo] = useState(null);
+
+      // Reset queue number if cart is emptied manually
+      useEffect(() => {
+        if (cart.length === 0 && currentQueueNo) {
+          setCurrentQueueNo(null);
+        }
+      }, [cart.length, currentQueueNo]);
 
       // Fungsi Generate Nomor Antrean (Reset Tiap Hari)
       const generateQueueNo = () => {
@@ -428,7 +440,7 @@
       const processQueueOnly = () => {
         const transactionData = { 
           id: `INV-${Date.now().toString().slice(-6)}`, 
-          queueNo: generateQueueNo(),
+          queueNo: currentQueueNo || generateQueueNo(),
           date: new Date().toISOString(), 
           items: cart, 
           total: totalBelanja, 
@@ -440,6 +452,7 @@
         setLastInvoice(transactionData);
         onTransactionSuccess(transactionData);
         setCart([]); setIsMobileCartOpen(false);
+        setCurrentQueueNo(null);
       };
 
       // Proses untuk pesanan yang langsung Lunas/Dibayar
@@ -452,7 +465,7 @@
         
         const transactionData = { 
           id: `INV-${Date.now().toString().slice(-6)}`, 
-          queueNo: generateQueueNo(),
+          queueNo: currentQueueNo || generateQueueNo(),
           date: new Date().toISOString(), 
           items: cart, 
           total: totalBelanja, 
@@ -464,6 +477,36 @@
         setLastInvoice(transactionData);
         onTransactionSuccess(transactionData);
         setCart([]); setShowPayment(false); setIsMobileCartOpen(false);
+        setCurrentQueueNo(null);
+      };
+
+      const resumeTransaction = (trx) => {
+        const executeResume = () => {
+          setCart(trx.items);
+          setCurrentQueueNo(trx.queueNo);
+          onDeleteTransaction(trx.id);
+          setShowHistory(false);
+        };
+
+        if (cart.length > 0) {
+          if (window.Swal) {
+            window.Swal.fire({
+              title: 'Ganti Pesanan Aktif?',
+              text: 'Keranjang saat ini tidak kosong. Ganti dengan pesanan antrean ini?',
+              icon: 'warning',
+              showCancelButton: true,
+              confirmButtonColor: '#4f46e5',
+              confirmButtonText: 'Ya, Ganti',
+              cancelButtonText: 'Batal'
+            }).then((res) => {
+              if (res.isConfirmed) executeResume();
+            });
+          } else {
+            executeResume();
+          }
+        } else {
+          executeResume();
+        }
       };
 
       const handlePrint = () => {
@@ -898,8 +941,15 @@
                           <div>
                             <div className="font-bold text-slate-800">{trx.id}</div>
                             <div className="text-xs text-slate-400 mb-1">{new Date(trx.date).toLocaleString('id-ID')}</div>
-                            <div className={`text-[10px] px-2 py-0.5 rounded inline-block font-bold ${trx.method === 'Cash' ? 'bg-emerald-50 text-emerald-600' : trx.method === 'Belum Bayar' ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600'}`}>
-                              {trx.method}
+                            <div className="flex items-center gap-2">
+                              <div className={`text-[10px] px-2 py-0.5 rounded inline-block font-bold ${trx.method === 'Cash' ? 'bg-emerald-50 text-emerald-600' : trx.method === 'Belum Bayar' ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600'}`}>
+                                {trx.method}
+                              </div>
+                              {trx.method === 'Belum Bayar' && (
+                                <button onClick={() => resumeTransaction(trx)} className="text-[10px] px-2 py-0.5 rounded font-bold bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-600 hover:text-white transition-colors flex items-center gap-1 shadow-sm active:scale-95">
+                                  Bayar Sekarang
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -1139,7 +1189,8 @@
         
         const tableData = filteredTransactions.map(trx => {
           const trxSum = calcSummary([trx]);
-          return [trx.id, new Date(trx.date).toLocaleDateString('id-ID'), trx.method, formatRp(trxSum.modal), formatRp(trx.total), formatRp(trxSum.laba)];
+          const idText = trx.queueNo ? `${trx.id} (Antrean: ${trx.queueNo})` : trx.id;
+          return [idText, new Date(trx.date).toLocaleDateString('id-ID'), trx.method, formatRp(trxSum.modal), formatRp(trx.total), formatRp(trxSum.laba)];
         });
 
         doc.autoTable({
