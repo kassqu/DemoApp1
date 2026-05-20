@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Demo-App#1</title>
+  <title>KassQu - Web App POS</title>
   
   <!-- Web App Manifest & PWA Meta Tags -->
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -63,8 +63,8 @@
     }
     .full-immersive::before {
       content: ""; position: absolute; inset: 0;
-      background: rgba(15, 23, 42, 0.7)/80;
-      backdrop-filter: blur(2px);
+      background: rgba(15, 23, 42, 0.7); 
+      backdrop-filter: blur(4px);
       z-index: -1;
     }
 
@@ -380,6 +380,13 @@
       const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
       const [showHistory, setShowHistory] = useState(false);
 
+      // Fungsi Generate Nomor Antrean (Reset Tiap Hari)
+      const generateQueueNo = () => {
+        const today = new Date().toDateString();
+        const todayTrx = transactions.filter(t => new Date(t.date).toDateString() === today);
+        return (todayTrx.length + 1).toString().padStart(3, '0');
+      };
+
       // Filter produk berdasarkan pencarian & kategori
       const filteredProducts = useMemo(() => {
         return products.filter(p => {
@@ -417,6 +424,25 @@
       
       const totalBelanja = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
 
+      // Proses untuk masukin pesanan ke Antrean (Tanpa/Belum dibayar)
+      const processQueueOnly = () => {
+        const transactionData = { 
+          id: `INV-${Date.now().toString().slice(-6)}`, 
+          queueNo: generateQueueNo(),
+          date: new Date().toISOString(), 
+          items: cart, 
+          total: totalBelanja, 
+          payment: 0, 
+          change: 0,
+          method: 'Belum Bayar'
+        };
+        
+        setLastInvoice(transactionData);
+        onTransactionSuccess(transactionData);
+        setCart([]); setIsMobileCartOpen(false);
+      };
+
+      // Proses untuk pesanan yang langsung Lunas/Dibayar
       const processPayment = () => {
         const bayar = paymentMethod === 'Cash' ? (parseInt(paymentAmount.replace(/\D/g, '')) || 0) : totalBelanja;
         
@@ -426,6 +452,7 @@
         
         const transactionData = { 
           id: `INV-${Date.now().toString().slice(-6)}`, 
+          queueNo: generateQueueNo(),
           date: new Date().toISOString(), 
           items: cart, 
           total: totalBelanja, 
@@ -523,7 +550,7 @@
                   </h2>
                 </div>
                 <div className="flex items-center gap-2 md:gap-3 shrink-0">
-                  <button onClick={() => setShowHistory(true)} className="w-10 h-10 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all shadow-sm" title="Riwayat Transaksi">
+                  <button onClick={() => setShowHistory(true)} className="w-10 h-10 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all shadow-sm" title="Riwayat & Antrean">
                     <Icon name="receipt_long" className="text-xl" />
                   </button>
                   <button onClick={onLogout} className="w-10 h-10 bg-red-500/90 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-all shadow-sm shadow-red-900/20" title="Keluar">
@@ -586,11 +613,14 @@
                       </div>
                     )}
 
-                    <div className="aspect-square bg-slate-100 relative overflow-hidden flex items-center justify-center p-2">
+                    {/* Menggunakan object-cover agar gambar memenuhi full container tanpa celah putih */}
+                    <div className="aspect-square bg-slate-100 relative overflow-hidden">
                       {product.image ? (
-                        <img src={product.image} alt={product.name} className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-500" onError={(e) => e.target.src='https://via.placeholder.com/200/e2e8f0/94a3b8?text=No+Image'}/>
+                        <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" onError={(e) => e.target.src='https://via.placeholder.com/200/e2e8f0/94a3b8?text=No+Image'}/>
                       ) : (
-                        <Icon name="inventory_2" className="text-6xl text-slate-300 group-hover:scale-110 transition-transform duration-300" />
+                        <div className="w-full h-full flex items-center justify-center">
+                           <Icon name="inventory_2" className="text-6xl text-slate-300 group-hover:scale-110 transition-transform duration-300" />
+                        </div>
                       )}
                       <div className="absolute bottom-2 right-2 bg-white/90 backdrop-blur text-slate-800 text-[10px] font-black px-2 py-1 rounded-md shadow-sm border border-slate-100">
                         Stok: {product.stock}
@@ -682,10 +712,17 @@
                 <span className="text-slate-500 font-bold text-sm">Total Tagihan</span>
                 <span className="text-3xl font-black text-indigo-700">{formatRp(totalBelanja)}</span>
               </div>
-              <button onClick={() => { setShowPayment(true); setPaymentAmount(''); setPaymentMethod('Cash'); }} disabled={cart.length === 0} 
-                className="w-full bg-indigo-600 disabled:bg-slate-200 disabled:text-slate-400 text-white py-4 rounded-2xl font-black text-lg active:scale-95 transition-all shadow-lg shadow-indigo-600/20 disabled:shadow-none flex justify-center items-center gap-2">
-                LANJUT PEMBAYARAN <Icon name="arrow_forward" />
-              </button>
+              <div className="flex gap-2">
+                <button onClick={processQueueOnly} disabled={cart.length === 0} 
+                  className="bg-orange-100 hover:bg-orange-200 text-orange-600 disabled:bg-slate-100 disabled:text-slate-400 py-3.5 px-4 rounded-2xl font-black text-xs active:scale-95 transition-all flex flex-col justify-center items-center gap-1 shrink-0 border border-orange-200 shadow-sm disabled:border-transparent">
+                  <Icon name="list_alt" className="text-xl" />
+                  + Antrean
+                </button>
+                <button onClick={() => { setShowPayment(true); setPaymentAmount(''); setPaymentMethod('Cash'); }} disabled={cart.length === 0} 
+                  className="w-full flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 text-white py-3.5 rounded-2xl font-black text-base active:scale-95 transition-all shadow-lg shadow-indigo-600/20 disabled:shadow-none flex justify-center items-center gap-2">
+                  LANJUT BAYAR <Icon name="arrow_forward" />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -744,7 +781,7 @@
                 <button onClick={processPayment} 
                   disabled={paymentMethod === 'Cash' && paymentAmount < totalBelanja}
                   className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-200 disabled:text-slate-400 text-white py-4 rounded-2xl font-black text-lg active:scale-95 transition-all flex justify-center items-center gap-2 shadow-lg shadow-emerald-500/30 disabled:shadow-none">
-                  <Icon name="receipt" /> SELESAIKAN TRANSAKSI
+                  <Icon name="receipt" /> SELESAIKAN & CETAK STRUK
                 </button>
               </div>
             </div>,
@@ -771,8 +808,14 @@
                   <p className="text-center text-xs mb-1 whitespace-pre-wrap leading-tight text-slate-600">{storeConfig.address}</p>
                   <p className="text-center text-xs font-bold mb-4 text-slate-600">WA/Telp: {storeConfig.phone}</p>
                   
-                  <div className="border-b-2 border-dashed border-slate-300 mb-3"></div>
-                  
+                  {/* Nomor Antrean Display (DITAMBAHKAN) */}
+                  {lastInvoice.queueNo && (
+                    <div className="border-y-2 border-dashed border-slate-300 py-3 mb-4 text-center bg-slate-50">
+                      <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">Nomor Antrean</div>
+                      <div className="text-5xl font-black text-black leading-none">{lastInvoice.queueNo}</div>
+                    </div>
+                  )}
+
                   <div className="text-xs mb-3 space-y-1">
                     <div className="flex justify-between"><span>ID:</span><span className="font-bold">{lastInvoice.id}</span></div>
                     <div className="flex justify-between"><span>Tgl:</span><span>{new Date(lastInvoice.date).toLocaleString('id-ID')}</span></div>
@@ -802,8 +845,14 @@
                   
                   <div className="space-y-1.5 text-xs">
                     <div className="flex justify-between font-black text-sm"><span>TOTAL</span><span>{formatRp(lastInvoice.total)}</span></div>
-                    <div className="flex justify-between mt-2"><span>BAYAR ({lastInvoice.method})</span><span>{formatRp(lastInvoice.payment)}</span></div>
-                    {lastInvoice.method === 'Cash' && <div className="flex justify-between font-bold"><span>KEMBALI</span><span>{formatRp(lastInvoice.change)}</span></div>}
+                    {lastInvoice.method === 'Belum Bayar' ? (
+                      <div className="flex justify-between mt-2 text-orange-600 font-bold"><span>STATUS</span><span className="border border-orange-400 px-1">BELUM BAYAR</span></div>
+                    ) : (
+                      <>
+                        <div className="flex justify-between mt-2"><span>BAYAR ({lastInvoice.method})</span><span>{formatRp(lastInvoice.payment)}</span></div>
+                        {lastInvoice.method === 'Cash' && <div className="flex justify-between font-bold"><span>KEMBALI</span><span>{formatRp(lastInvoice.change)}</span></div>}
+                      </>
+                    )}
                   </div>
                   
                   <div className="text-center mt-8 text-[10px] text-slate-500 border-t border-dashed border-slate-300 pt-4">
@@ -830,33 +879,42 @@
             document.body
           )}
 
-          {/* MODAL RIWAYAT TRANSAKSI */}
+          {/* MODAL RIWAYAT & ANTREAN TRANSAKSI (DIPERBARUI) */}
           {showHistory && ReactDOM.createPortal(
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
               <div className="bg-white rounded-[2rem] w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[80vh] transform transition-all">
                 <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                  <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><Icon name="history" className="text-indigo-600" /> Riwayat Penjualan</h3>
+                  <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><Icon name="history" className="text-indigo-600" /> Riwayat & Antrean</h3>
                   <button onClick={() => setShowHistory(false)} className="bg-white border border-slate-200 p-2 rounded-full text-slate-400 hover:text-slate-600"><Icon name="close" /></button>
                 </div>
                 <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-3 bg-white scroll-momentum">
                   {transactions && transactions.length > 0 ? (
-                    transactions.slice(0, 20).map(trx => (
+                    transactions.slice(0, 30).map(trx => (
                       <div key={trx.id} className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex justify-between items-center hover:border-indigo-300 transition-colors group">
-                        <div>
-                          <div className="font-bold text-slate-800">{trx.id}</div>
-                          <div className="text-xs text-slate-400">{new Date(trx.date).toLocaleString('id-ID')}</div>
-                          <div className={`text-[10px] px-2 py-0.5 rounded inline-block mt-1.5 font-bold ${trx.method === 'Cash' ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'}`}>{trx.method}</div>
+                        <div className="flex items-center gap-4">
+                          <div className={`font-black text-xl w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border ${trx.method === 'Belum Bayar' ? 'bg-orange-50 text-orange-600 border-orange-200' : 'bg-slate-50 text-slate-800 border-slate-200'}`}>
+                            {trx.queueNo || '-'}
+                          </div>
+                          <div>
+                            <div className="font-bold text-slate-800">{trx.id}</div>
+                            <div className="text-xs text-slate-400 mb-1">{new Date(trx.date).toLocaleString('id-ID')}</div>
+                            <div className={`text-[10px] px-2 py-0.5 rounded inline-block font-bold ${trx.method === 'Cash' ? 'bg-emerald-50 text-emerald-600' : trx.method === 'Belum Bayar' ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600'}`}>
+                              {trx.method}
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <div className="font-black text-slate-800 group-hover:text-indigo-600 transition-colors text-lg">{formatRp(trx.total)}</div>
-                          <div className="text-xs text-slate-400 font-medium">{trx.items.length} item</div>
+                        <div className="text-right flex flex-col items-end gap-2">
+                          <div className="font-black text-slate-800 group-hover:text-indigo-600 transition-colors text-base">{formatRp(trx.total)}</div>
+                          <button onClick={() => { setLastInvoice(trx); setShowHistory(false); }} className="text-[10px] font-bold bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg hover:bg-indigo-100 flex items-center gap-1 transition-colors">
+                            <Icon name="receipt" className="text-[12px]" /> Lihat Struk
+                          </button>
                         </div>
                       </div>
                     ))
                   ) : (
                     <div className="text-center py-16 flex flex-col items-center text-slate-400">
                        <Icon name="receipt_long" className="text-6xl mb-3 opacity-30" />
-                       <p className="font-medium">Belum ada transaksi di mesin ini.</p>
+                       <p className="font-medium">Belum ada transaksi atau antrean di mesin ini.</p>
                     </div>
                   )}
                 </div>
@@ -869,7 +927,7 @@
     }
 
     // ==========================================
-    // 3. DASHBOARD ADMIN (UI DIPERBAIKI)
+    // 3. DASHBOARD ADMIN
     // ==========================================
     function AdminDashboard({ products, setProducts, categories, setCategories, transactions, storeConfig, setStoreConfig, balances, setBalances, users, setUsers, onLogout, syncToSheets }) {
       const [activeTab, setActiveTab] = useState('report');
@@ -1035,12 +1093,15 @@
         });
       }, [transactions, filter, startDate, endDate]);
 
+      // Catatan: Transaksi "Belum Bayar" tidak akan dihitung masuk ke Omzet & Laba
       const calcSummary = (trxs) => trxs.reduce((acc, trx) => {
-        acc.omzet += trx.total;
-        trx.items.forEach(i => {
-          acc.modal += (i.modal || 0) * i.qty;
-          acc.laba += (i.price - (i.modal || 0)) * i.qty;
-        });
+        if (trx.method !== 'Belum Bayar') {
+          acc.omzet += trx.total;
+          trx.items.forEach(i => {
+            acc.modal += (i.modal || 0) * i.qty;
+            acc.laba += (i.price - (i.modal || 0)) * i.qty;
+          });
+        }
         return acc;
       }, { omzet: 0, modal: 0, laba: 0 });
 
@@ -1049,7 +1110,9 @@
       const paymentStats = useMemo(() => {
         const stats = {};
         filteredTransactions.forEach(trx => {
-          stats[trx.method] = (stats[trx.method] || 0) + trx.total;
+          if (trx.method !== 'Belum Bayar') {
+            stats[trx.method] = (stats[trx.method] || 0) + trx.total;
+          }
         });
         return { labels: Object.keys(stats), data: Object.values(stats) };
       }, [filteredTransactions]);
@@ -1057,9 +1120,11 @@
       const productStats = useMemo(() => {
         const stats = {};
         filteredTransactions.forEach(trx => {
-          trx.items.forEach(item => {
-            stats[item.name] = (stats[item.name] || 0) + item.qty;
-          });
+          if (trx.method !== 'Belum Bayar') {
+            trx.items.forEach(item => {
+              stats[item.name] = (stats[item.name] || 0) + item.qty;
+            });
+          }
         });
         const sorted = Object.entries(stats).sort((a, b) => b[1] - a[1]).slice(0, 5);
         return { labels: sorted.map(s => s[0]), data: sorted.map(s => s[1]) };
@@ -1091,7 +1156,7 @@
           <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-4 bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100">
             <div>
               <h2 className="text-2xl md:text-3xl font-black text-slate-800">Laporan Keuangan</h2>
-              <p className="text-slate-500 font-medium mt-1">Ringkasan penjualan, modal, dan laba bersih.</p>
+              <p className="text-slate-500 font-medium mt-1">Status <b>Belum Bayar (Antrean)</b> tidak dihitung sebagai omzet/laba.</p>
             </div>
             <div className="flex flex-col sm:flex-row items-center gap-3">
               <div className="relative bg-white rounded-xl flex items-center border border-slate-200 shrink-0 w-full sm:w-auto shadow-sm hover:border-indigo-300 transition-colors">
@@ -1121,7 +1186,7 @@
               <div className="relative z-10">
                 <p className="text-blue-100 font-bold mb-2 text-sm uppercase tracking-wider">Total Omzet</p>
                 <h3 className="text-3xl md:text-4xl font-black">{formatRp(summary.omzet)}</h3>
-                <p className="text-sm mt-4 font-medium bg-black/10 inline-block px-3 py-1 rounded-full">{filteredTransactions.length} Transaksi</p>
+                <p className="text-sm mt-4 font-medium bg-black/10 inline-block px-3 py-1 rounded-full">{filteredTransactions.filter(t=>t.method!=='Belum Bayar').length} Transaksi Selesai</p>
               </div>
             </div>
             <div className="bg-gradient-to-br from-orange-500 to-rose-500 p-6 md:p-8 rounded-3xl text-white shadow-xl shadow-orange-200/50 relative overflow-hidden group hover:scale-[1.02] transition-transform">
@@ -1129,7 +1194,7 @@
               <div className="relative z-10">
                 <p className="text-orange-100 font-bold mb-2 text-sm uppercase tracking-wider">Total Harga Modal</p>
                 <h3 className="text-3xl md:text-4xl font-black">{formatRp(summary.modal)}</h3>
-                <p className="text-sm mt-4 font-medium bg-black/10 inline-block px-3 py-1 rounded-full">Aset terjual</p>
+                <p className="text-sm mt-4 font-medium bg-black/10 inline-block px-3 py-1 rounded-full">Aset terjual lunas</p>
               </div>
             </div>
             <div className="bg-gradient-to-br from-emerald-400 to-emerald-600 p-6 md:p-8 rounded-3xl text-white shadow-xl shadow-emerald-200/50 relative overflow-hidden group hover:scale-[1.02] transition-transform">
@@ -1147,7 +1212,7 @@
               <PieChart title="Pendapatan per Metode Pembayaran" labels={paymentStats.labels} data={paymentStats.data} colors={['#10b981', '#3b82f6', '#f59e0b']} isCurrency={true}/>
             </div>
             <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100">
-              <PieChart title="Top 5 Produk Terlaris (Qty)" labels={productStats.labels} data={productStats.data} />
+              <PieChart title="Top 5 Produk Terlaris (Lunas/Qty)" labels={productStats.labels} data={productStats.data} />
             </div>
           </div>
 
@@ -1164,13 +1229,20 @@
                 <tbody className="divide-y divide-slate-50">
                   {filteredTransactions.map(trx => {
                     const trxSum = calcSummary([trx]);
+                    const isUnpaid = trx.method === 'Belum Bayar';
                     return (
                       <tr key={trx.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="p-4 pl-6"><p className="font-bold text-slate-800">{trx.id}</p><p className="text-xs text-slate-500 font-medium mt-0.5">{new Date(trx.date).toLocaleString('id-ID')}</p></td>
-                        <td className="p-4"><p className="text-slate-600 max-w-[200px] truncate font-medium">{trx.items.map(i=>i.name).join(', ')}</p><span className={`text-[10px] px-2 py-0.5 rounded font-bold mt-1.5 inline-block ${trx.method === 'Cash' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>{trx.method}</span></td>
-                        <td className="p-4 text-right font-medium text-orange-600">{formatRp(trxSum.modal)}</td>
-                        <td className="p-4 text-right font-bold text-blue-600">{formatRp(trx.total)}</td>
-                        <td className="p-4 text-right pr-6 font-black text-emerald-500">{formatRp(trxSum.laba)}</td>
+                        <td className="p-4 pl-6">
+                           <div className="flex gap-2 items-center">
+                             {trx.queueNo && <span className={`text-[10px] px-1.5 py-0.5 rounded font-black border ${isUnpaid ? 'border-orange-200 text-orange-600 bg-orange-50' : 'border-slate-200 text-slate-500'}`}>{trx.queueNo}</span>}
+                             <p className="font-bold text-slate-800">{trx.id}</p>
+                           </div>
+                           <p className="text-xs text-slate-500 font-medium mt-1">{new Date(trx.date).toLocaleString('id-ID')}</p>
+                        </td>
+                        <td className="p-4"><p className="text-slate-600 max-w-[200px] truncate font-medium">{trx.items.map(i=>i.name).join(', ')}</p><span className={`text-[10px] px-2 py-0.5 rounded font-bold mt-1.5 inline-block ${trx.method === 'Cash' ? 'bg-emerald-100 text-emerald-700' : isUnpaid ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>{trx.method}</span></td>
+                        <td className={`p-4 text-right font-medium ${isUnpaid ? 'text-slate-300 line-through' : 'text-orange-600'}`}>{formatRp(trxSum.modal)}</td>
+                        <td className={`p-4 text-right font-bold ${isUnpaid ? 'text-slate-300 line-through' : 'text-blue-600'}`}>{formatRp(trx.total)}</td>
+                        <td className={`p-4 text-right pr-6 font-black ${isUnpaid ? 'text-slate-300 line-through' : 'text-emerald-500'}`}>{formatRp(trxSum.laba)}</td>
                       </tr>
                     );
                   })}
