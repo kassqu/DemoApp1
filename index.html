@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Burjo-DemoApp1</title>
+  <title>Kedai-DemoApp</title>
   
   <!-- Web App Manifest & PWA Meta Tags -->
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,6 +13,44 @@
   <link rel="icon" type="image/png" href="https://via.placeholder.com/64/4f46e5/ffffff?text=KQ" />
   <link rel="apple-touch-icon" href="https://via.placeholder.com/192/4f46e5/ffffff?text=KQ">
   
+  <!-- SCRIPT PWA MANIFEST (KHUSUS ANDROID/CHROME) -->
+  <script>
+    (function() {
+      // Membuat KTP Aplikasi (Manifest) secara virtual
+      const manifestJSON = {
+        "name": "KassQu Kedai-DemoApp",
+        "short_name": "Kedai-DemoApp",
+        "start_url": window.location.href, 
+        "display": "standalone",
+        "background_color": "#f8fafc",
+        "theme_color": "#4f46e5",
+        "icons": [
+          {
+            "src": "https://raw.githubusercontent.com/kassqu/DemoApp1/refs/heads/main/logo.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+          },
+          {
+            "src": "https://raw.githubusercontent.com/kassqu/DemoApp1/refs/heads/main/logo.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+          }
+        ]
+      };
+      
+      // Mengubah JSON menjadi URL Data dan menempelkannya ke <head>
+      const manifestString = JSON.stringify(manifestJSON);
+      const manifestURL = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(manifestString);
+      
+      const link = document.createElement('link');
+      link.rel = 'manifest';
+      link.href = manifestURL;
+      document.head.appendChild(link);
+    })();
+  </script>
+
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   
@@ -33,6 +71,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  
+  <!-- SheetJS (Untuk Export Excel) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -384,6 +425,7 @@
       const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
       const [showHistory, setShowHistory] = useState(false);
       const [currentQueueNo, setCurrentQueueNo] = useState(null);
+      const [noteModal, setNoteModal] = useState({ isOpen: false, product: null, note: '' });
 
       // Reset queue number if cart is emptied manually
       useEffect(() => {
@@ -408,31 +450,36 @@
         });
       }, [products, activeCategory, searchQuery]);
 
-      const addToCart = (product) => {
+      const openNoteModal = (product) => {
         if (product.stock <= 0) return showAlert({ icon: 'error', title: 'Habis', text: 'Stok barang kosong!' });
+        setNoteModal({ isOpen: true, product, note: '' });
+      };
+
+      const addToCart = (product, note = '') => {
+        const cartItemId = note ? `${product.id}-${note.toLowerCase().trim()}` : product.id;
         
         setCart(prev => {
-          const existing = prev.find(item => item.id === product.id);
+          const existing = prev.find(item => (item.cartItemId || item.id) === cartItemId);
           if (existing) {
             if (existing.qty >= product.stock) {
               showAlert({ icon: 'warning', title: 'Batas Maksimal', text: 'Stok maksimal telah tercapai.' });
               return prev;
             }
-            return prev.map(item => item.id === product.id ? { ...item, qty: item.qty + 1 } : item);
+            return prev.map(item => (item.cartItemId || item.id) === cartItemId ? { ...item, qty: item.qty + 1 } : item);
           }
           const netPrice = product.price - (product.diskon || 0);
-          return [...prev, { ...product, price: netPrice, originalPrice: product.price, qty: 1, diskon: product.diskon || 0 }];
+          return [...prev, { ...product, cartItemId, note, price: netPrice, originalPrice: product.price, qty: 1, diskon: product.diskon || 0 }];
         });
       };
 
-      const updateQty = (id, delta) => {
+      const updateQty = (cartItemId, delta) => {
         setCart(prev => prev.map(item => {
-          if (item.id === id) return { ...item, qty: Math.max(1, item.qty + delta) };
+          if ((item.cartItemId || item.id) === cartItemId) return { ...item, qty: Math.max(1, item.qty + delta) };
           return item;
         }));
       };
 
-      const removeFromCart = (id) => setCart(prev => prev.filter(item => item.id !== id));
+      const removeFromCart = (cartItemId) => setCart(prev => prev.filter(item => (item.cartItemId || item.id) !== cartItemId));
       
       const totalBelanja = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
 
@@ -647,7 +694,7 @@
             <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-50 scroll-momentum hide-scrollbar">
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-5 pb-24">
                 {filteredProducts.map(product => (
-                  <div key={product.id} onClick={() => addToCart(product)} 
+                  <div key={product.id} onClick={() => openNoteModal(product)} 
                     className="bg-white rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-1 border border-slate-100/80 overflow-hidden cursor-pointer transition-all duration-300 active:scale-95 group flex flex-col relative select-none">
                     
                     {product.diskon > 0 && (
@@ -729,20 +776,23 @@
                 </div>
               ) : (
                 cart.map(item => (
-                  <div key={item.id} className="bg-white p-3.5 rounded-2xl shadow-sm flex flex-col gap-3 border border-slate-100/80 transition-all hover:border-indigo-100">
+                  <div key={item.cartItemId || item.id} className="bg-white p-3.5 rounded-2xl shadow-sm flex flex-col gap-3 border border-slate-100/80 transition-all hover:border-indigo-100">
                     <div className="flex justify-between items-start gap-2">
-                      <h4 className="font-bold text-slate-700 text-sm leading-tight">
-                        {item.name}
-                        {item.diskon > 0 && <span className="ml-2 text-[10px] bg-pink-50 text-pink-600 px-1.5 py-0.5 rounded font-black border border-pink-100 align-middle">Disc -{formatRp(item.diskon)}</span>}
-                      </h4>
-                      <button onClick={() => removeFromCart(item.id)} className="text-red-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors"><Icon name="delete" className="text-sm" /></button>
+                      <div>
+                        <h4 className="font-bold text-slate-700 text-sm leading-tight">
+                          {item.name}
+                          {item.diskon > 0 && <span className="ml-2 text-[10px] bg-pink-50 text-pink-600 px-1.5 py-0.5 rounded font-black border border-pink-100 align-middle">Disc -{formatRp(item.diskon)}</span>}
+                        </h4>
+                        {item.note && <p className="text-xs text-slate-500 font-medium italic mt-0.5">Catatan: {item.note}</p>}
+                      </div>
+                      <button onClick={() => removeFromCart(item.cartItemId || item.id)} className="text-red-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors shrink-0"><Icon name="delete" className="text-sm" /></button>
                     </div>
                     <div className="flex justify-between items-center mt-1">
                       <span className="text-indigo-600 font-black">{formatRp(item.price)}</span>
                       <div className="flex items-center bg-slate-100 rounded-xl p-1 border border-slate-200/60">
-                        <button onClick={() => updateQty(item.id, -1)} className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm text-slate-600 font-bold hover:bg-slate-50 active:scale-95 transition-transform">-</button>
+                        <button onClick={() => updateQty(item.cartItemId || item.id, -1)} className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm text-slate-600 font-bold hover:bg-slate-50 active:scale-95 transition-transform">-</button>
                         <span className="w-10 text-center text-sm font-black text-slate-700">{item.qty}</span>
-                        <button onClick={() => updateQty(item.id, 1)} className="w-8 h-8 flex items-center justify-center bg-indigo-600 rounded-lg shadow-sm text-white font-bold hover:bg-indigo-700 active:scale-95 transition-transform">+</button>
+                        <button onClick={() => updateQty(item.cartItemId || item.id, 1)} className="w-8 h-8 flex items-center justify-center bg-indigo-600 rounded-lg shadow-sm text-white font-bold hover:bg-indigo-700 active:scale-95 transition-transform">+</button>
                       </div>
                     </div>
                   </div>
@@ -877,6 +927,7 @@
                         <tr key={i} className="align-top">
                           <td className="py-1.5 w-3/4">
                             <div className="font-bold">{item.name}</div>
+                            {item.note && <div className="text-[10px] text-slate-600 italic">Catatan: {item.note}</div>}
                             <div className="text-slate-500 text-[10px]">
                               {item.qty}x @{formatRp(item.originalPrice || item.price)} 
                               {item.diskon > 0 ? ` (-${formatRp(item.diskon)})` : ''}
@@ -976,6 +1027,30 @@
             </div>,
             document.body
           )}
+
+          {/* MODAL KETERANGAN PRODUK */}
+          {noteModal.isOpen && ReactDOM.createPortal(
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+              <div className="bg-white p-6 rounded-[2rem] w-full max-w-sm shadow-2xl transform transition-all scale-100">
+                <h3 className="text-xl font-black text-slate-800 mb-1">Tambah ke Keranjang</h3>
+                <p className="text-sm font-bold text-indigo-600 mb-4 pb-4 border-b border-slate-100">{noteModal.product?.name}</p>
+                <form onSubmit={(e) => { 
+                  e.preventDefault(); 
+                  addToCart(noteModal.product, noteModal.note); 
+                  setNoteModal({ isOpen: false, product: null, note: '' }); 
+                }}>
+                  <label className="block text-xs font-bold text-slate-500 mb-2">Keterangan Khusus (Opsional)</label>
+                  <input type="text" autoFocus value={noteModal.note} onChange={e => setNoteModal({...noteModal, note: e.target.value})} placeholder="Contoh: Pedas, karet 2, dll..." className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all text-sm font-medium mb-6" />
+                  <div className="flex gap-3">
+                    <button type="button" onClick={() => setNoteModal({ isOpen: false, product: null, note: '' })} className="flex-1 py-3.5 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors">Batal</button>
+                    <button type="submit" className="flex-[2] py-3.5 bg-indigo-600 text-white font-black rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all active:scale-95">Tambahkan</button>
+                  </div>
+                </form>
+              </div>
+            </div>,
+            document.body
+          )}
+
         </div>
       );
     }
@@ -1206,6 +1281,52 @@
         doc.save(`Laporan_${filter}_${Date.now()}.pdf`);
       };
 
+      const downloadExcel = () => {
+        if(!window.XLSX) return showAlert({icon:'error', title:'Error', text:'Library Excel belum dimuat.'});
+        
+        // Siapkan data array object untuk Excel
+        const excelData = [];
+        
+        filteredTransactions.forEach(trx => {
+          const trxSum = calcSummary([trx]);
+          // Gabungkan item & catatan menjadi satu string rapi
+          const itemsStr = trx.items.map(i => i.note ? `${i.name} (${i.note}) x${i.qty}` : `${i.name} x${i.qty}`).join(', ');
+          
+          excelData.push({
+            'ID Transaksi': trx.queueNo ? `${trx.id} (Antrean: ${trx.queueNo})` : trx.id,
+            'Tanggal': new Date(trx.date).toLocaleString('id-ID'),
+            'Item Terjual': itemsStr,
+            'Metode Pembayaran': trx.method,
+            'Total Modal (Rp)': trxSum.modal,
+            'Total Omzet (Rp)': trx.total,
+            'Laba Bersih (Rp)': trxSum.laba
+          });
+        });
+
+        // Tambahkan baris kosong sebagai pemisah, lalu baris Grand Total
+        excelData.push({});
+        excelData.push({
+          'ID Transaksi': 'GRAND TOTAL',
+          'Tanggal': '',
+          'Item Terjual': '',
+          'Metode Pembayaran': '',
+          'Total Modal (Rp)': summary.modal,
+          'Total Omzet (Rp)': summary.omzet,
+          'Laba Bersih (Rp)': summary.laba
+        });
+
+        // Konversi ke worksheet Excel
+        const ws = window.XLSX.utils.json_to_sheet(excelData);
+        const wb = window.XLSX.utils.book_new();
+        window.XLSX.utils.book_append_sheet(wb, ws, "Laporan_Penjualan");
+        
+        // Atur lebar kolom biar rapi pas dibuka
+        ws['!cols'] = [{wch: 25}, {wch: 20}, {wch: 45}, {wch: 20}, {wch: 18}, {wch: 18}, {wch: 18}];
+
+        // Download file
+        window.XLSX.writeFile(wb, `Laporan_${filter}_${Date.now()}.xlsx`);
+      };
+
       return (
         <div className="space-y-6 animate-fade-in">
           <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-4 bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100">
@@ -1274,7 +1395,14 @@
           <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
             <div className="p-5 md:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 bg-slate-50/50">
               <h3 className="font-bold text-lg text-slate-800">Rincian Transaksi</h3>
-              <button onClick={downloadPDF} className="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"><Icon name="picture_as_pdf" className="text-base"/> Export PDF</button>
+              <div className="flex flex-wrap gap-2">
+                <button onClick={downloadExcel} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 md:px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 transition-all active:scale-95">
+                  <Icon name="table_view" className="text-base"/> Export Excel
+                </button>
+                <button onClick={downloadPDF} className="bg-slate-800 hover:bg-slate-900 text-white px-4 md:px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-md shadow-slate-800/20 transition-all active:scale-95">
+                  <Icon name="picture_as_pdf" className="text-base"/> Export PDF
+                </button>
+              </div>
             </div>
             <div className="overflow-x-auto scroll-momentum">
               <table className="w-full text-left text-sm whitespace-nowrap min-w-[700px]">
@@ -1294,7 +1422,7 @@
                            </div>
                            <p className="text-xs text-slate-500 font-medium mt-1">{new Date(trx.date).toLocaleString('id-ID')}</p>
                         </td>
-                        <td className="p-4"><p className="text-slate-600 max-w-[200px] truncate font-medium">{trx.items.map(i=>i.name).join(', ')}</p><span className={`text-[10px] px-2 py-0.5 rounded font-bold mt-1.5 inline-block ${trx.method === 'Cash' ? 'bg-emerald-100 text-emerald-700' : isUnpaid ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>{trx.method}</span></td>
+                        <td className="p-4"><p className="text-slate-600 max-w-[200px] truncate font-medium">{trx.items.map(i => i.note ? `${i.name} (${i.note})` : i.name).join(', ')}</p><span className={`text-[10px] px-2 py-0.5 rounded font-bold mt-1.5 inline-block ${trx.method === 'Cash' ? 'bg-emerald-100 text-emerald-700' : isUnpaid ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>{trx.method}</span></td>
                         <td className={`p-4 text-right font-medium ${isUnpaid ? 'text-slate-300 line-through' : 'text-orange-600'}`}>{formatRp(trxSum.modal)}</td>
                         <td className={`p-4 text-right font-bold ${isUnpaid ? 'text-slate-300 line-through' : 'text-blue-600'}`}>{formatRp(trx.total)}</td>
                         <td className={`p-4 text-right pr-6 font-black ${isUnpaid ? 'text-slate-300 line-through' : 'text-emerald-500'}`}>{formatRp(trxSum.laba)}</td>
