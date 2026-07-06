@@ -558,13 +558,11 @@
             
             if(window.Swal) window.Swal.close();
             
-            // Coba Web Share API (Biasa support di HP Android/iOS)
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
               try {
                 await navigator.share({ files: [file], title: `Struk Transaksi`, text: `Terima kasih telah berbelanja!` });
               } catch (e) { console.log('Share dibatalkan user', e); }
             } else { 
-              // Jika di PC / Browser tidak support share file gambar ke WA, jadikan format teks otomatis
               let textItems = lastInvoice.items.map(i => `${i.qty}x ${i.name} = ${formatRp(i.price * i.qty)}`).join('%0A');
               const textContent = `*STRUK TRANSAKSI* %0AID: ${lastInvoice.id} %0ATgl: ${new Date(lastInvoice.date).toLocaleString('id-ID')} %0A%0A${textItems} %0A%0A*TOTAL: ${formatRp(lastInvoice.total)}* %0A%0ATerima kasih!`;
               const waUrl = `https://wa.me/?text=${textContent}`;
