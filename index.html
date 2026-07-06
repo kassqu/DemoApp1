@@ -630,15 +630,20 @@
               </div>
             </div>
 
-            {/* BANNER PROMO */}
+            {/* BANNER PROMO AWAL
             <div className="w-full h-[100px] md:h-[100px] relative overflow-hidden bg-slate-200 shrink-0 border-b border-slate-200">
                {storeConfig?.banner ? (
-                 <img src={storeConfig.banner} alt="Banner Promo" crossOrigin="anonymous" className="absolute inset-0 w-full h-full object-cover" />
-                  {/* <div className="absolute inset-0 bg-gradient-to-r from-indigo-900/90 to-transparent flex items-center p-6">*/}
+                 <img src={storeConfig.banner} alt="Banner Promo" crossOrigin="anonymous" className="absolute inset-0 w-full h-full object-cover" /> */}
+            <div className="px-4 md:px-6 pt-4 shrink-0 no-print">
+              <div className="w-full h-28 bg-indigo-100 rounded-2xl overflow-hidden relative shadow-sm">
+                 <img src="https://media.istockphoto.com/id/1163012737/id/foto/pelanggan-cantik-yang-ramah-di-kasir-tersenyum-di-kasir-pria-sementara-dia-memindai-produk-di.jpg?s=612x612&w=0&k=20&c=Pgsa-wtrHygwzVpakS5-E6tCAJuC7uvW6_n2np9Fy08=" alt="Promo Banner" className="w-full h-full object-cover opacity-80" />
+                 <div className="absolute inset-0 bg-gradient-to-r from-indigo-900/90 to-transparent flex items-center p-6">
                    <div className="text-white">
-                     <h3 className="text-xl font-bold mb-1">Selamat Datang, di {storeConfig?.name || 'KassQu'}!</h3>
-                     <p className="text-sm opacity-90">Selalu nantikan berbagai promo menarik dari kami, ya..</p>
+                     <h3 className="text-xl font-bold mb-1">Selamat Datang, Kasir {cashierId || 'Pagi'}!</h3>
+                     <p className="text-sm opacity-90">Tetap semangat melayani pelanggan hari ini.</p>
                    </div>
+                 </div>
+              </div>
                ) : (
                  <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 font-medium text-sm">
                    <Icon name="image" className="text-4xl mb-2 opacity-50" />
