@@ -1192,7 +1192,7 @@
       );
     }
 
-    // --- KOMPONEN LAPORAN ---
+    // --- KOMPONEN LAPORAN (DIPERBARUI DENGAN BACKGROUND & GLASSMORPHISM) ---
     function AdminReport({ transactions, storeConfig }) {
         const [filter, setFilter] = useState('today');
         const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
@@ -1329,60 +1329,73 @@
 
       return (
         <div className="space-y-6 animate-fade-in">
-          <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-4 bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100">
-            <div>
-              <h2 className="text-2xl md:text-3xl font-black text-slate-800">Laporan Keuangan</h2>
-              <p className="text-slate-500 font-medium mt-1">Status <b>Belum Bayar (Antrean)</b> tidak dihitung sebagai omzet/laba.</p>
+          
+          {/* HERO SECTION LAPORAN (Background Gambar & Glassmorphism) */}
+          <div className="relative p-6 md:p-8 rounded-3xl overflow-hidden shadow-lg border border-slate-200">
+            {/* Background Image & Overlay */}
+            <div className="absolute inset-0 z-0">
+              <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=2000&auto=format&fit=crop" alt="Dashboard Background" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-slate-900/75 backdrop-blur-[2px]"></div>
             </div>
-            <div className="flex flex-col sm:flex-row items-center gap-3">
-              <div className="relative bg-white rounded-xl flex items-center border border-slate-200 shrink-0 w-full sm:w-auto shadow-sm hover:border-indigo-300 transition-colors">
-                <Icon name="filter_list" className="text-indigo-500 absolute left-3.5 text-[18px] pointer-events-none" />
-                <select value={filter} onChange={(e) => setFilter(e.target.value)} className="w-full pl-10 pr-10 py-3 bg-transparent text-sm font-bold text-slate-700 outline-none appearance-none cursor-pointer">
-                  <option value="today">Hari Ini</option>
-                  <option value="week">Minggu Ini</option>
-                  <option value="month">Bulan Ini</option>
-                  <option value="custom">Pilih Kalender</option>
-                </select>
-                <Icon name="expand_more" className="text-slate-500 absolute right-3 pointer-events-none" />
-              </div>
-            
-              {filter === 'custom' && (
-                <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-indigo-100 shadow-inner w-full sm:w-auto">
-                  <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-white rounded-lg text-xs font-bold text-slate-700 outline-none p-2 cursor-pointer border border-slate-200" />
-                  <span className="text-slate-400 font-black">-</span>
-                  <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-white rounded-lg text-xs font-bold text-slate-700 outline-none p-2 cursor-pointer border border-slate-200" />
+
+            <div className="relative z-10 space-y-6 md:space-y-8">
+              <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-4">
+                <div>
+                  <h2 className="text-2xl md:text-3xl font-black text-white">Laporan Keuangan</h2>
+                  <p className="text-slate-300 font-medium mt-1">Status <b>Belum Bayar (Antrean)</b> tidak dihitung sebagai omzet/laba.</p>
                 </div>
-              )}
+                <div className="flex flex-col sm:flex-row items-center gap-3">
+                  <div className="relative bg-white/10 backdrop-blur-md rounded-xl flex items-center border border-white/20 shrink-0 w-full sm:w-auto shadow-sm hover:border-white/40 transition-colors">
+                    <Icon name="filter_list" className="text-white/70 absolute left-3.5 text-[18px] pointer-events-none" />
+                    <select value={filter} onChange={(e) => setFilter(e.target.value)} className="w-full pl-10 pr-10 py-3 bg-transparent text-sm font-bold text-white outline-none appearance-none cursor-pointer [&>option]:text-slate-800">
+                      <option value="today">Hari Ini</option>
+                      <option value="week">Minggu Ini</option>
+                      <option value="month">Bulan Ini</option>
+                      <option value="custom">Pilih Kalender</option>
+                    </select>
+                    <Icon name="expand_more" className="text-white/70 absolute right-3 pointer-events-none" />
+                  </div>
+                
+                  {filter === 'custom' && (
+                    <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md p-1.5 rounded-xl border border-white/20 shadow-inner w-full sm:w-auto">
+                      <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-white/20 rounded-lg text-xs font-bold text-white outline-none p-2 cursor-pointer border border-white/10 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert" />
+                      <span className="text-white/50 font-black">-</span>
+                      <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-white/20 rounded-lg text-xs font-bold text-white outline-none p-2 cursor-pointer border border-white/10 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert" />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white/10 backdrop-blur-md border border-white/20 p-6 md:p-8 rounded-3xl text-white shadow-xl relative overflow-hidden group hover:scale-[1.02] transition-transform">
+                  <Icon name="payments" className="absolute -right-4 -bottom-4 text-[100px] text-white/5 group-hover:scale-110 transition-transform" />
+                  <div className="relative z-10">
+                    <p className="text-white/80 font-bold mb-2 text-sm uppercase tracking-wider">Total Omzet</p>
+                    <h3 className="text-3xl md:text-4xl font-black text-white drop-shadow-md">{formatRp(summary.omzet)}</h3>
+                    <p className="text-sm mt-4 font-medium bg-white/10 border border-white/10 inline-block px-3 py-1 rounded-full">{filteredTransactions.filter(t=>t.method!=='Belum Bayar').length} Transaksi Selesai</p>
+                  </div>
+                </div>
+                <div className="bg-white/10 backdrop-blur-md border border-white/20 p-6 md:p-8 rounded-3xl text-white shadow-xl relative overflow-hidden group hover:scale-[1.02] transition-transform">
+                  <Icon name="inventory_2" className="absolute -right-4 -bottom-4 text-[100px] text-white/5 group-hover:scale-110 transition-transform" />
+                  <div className="relative z-10">
+                    <p className="text-white/80 font-bold mb-2 text-sm uppercase tracking-wider">Total Harga Modal</p>
+                    <h3 className="text-3xl md:text-4xl font-black text-white drop-shadow-md">{formatRp(summary.modal)}</h3>
+                    <p className="text-sm mt-4 font-medium bg-white/10 border border-white/10 inline-block px-3 py-1 rounded-full">Aset terjual lunas</p>
+                  </div>
+                </div>
+                <div className="bg-white/10 backdrop-blur-md border border-white/20 p-6 md:p-8 rounded-3xl text-white shadow-xl relative overflow-hidden group hover:scale-[1.02] transition-transform">
+                  <Icon name="trending_up" className="absolute -right-4 -bottom-4 text-[100px] text-white/5 group-hover:scale-110 transition-transform" />
+                  <div className="relative z-10">
+                    <p className="text-white/80 font-bold mb-2 text-sm uppercase tracking-wider">Laba Bersih</p>
+                    <h3 className="text-3xl md:text-4xl font-black text-emerald-400 drop-shadow-md">{formatRp(summary.laba)}</h3>
+                    <p className="text-sm mt-4 font-medium bg-white/10 border border-white/10 inline-block px-3 py-1 rounded-full">Omzet dikurangi Modal</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-gradient-to-br from-indigo-500 to-blue-600 p-6 md:p-8 rounded-3xl text-white shadow-xl shadow-blue-200/50 relative overflow-hidden group hover:scale-[1.02] transition-transform">
-              <Icon name="payments" className="absolute -right-4 -bottom-4 text-[100px] text-white/10 group-hover:scale-110 transition-transform" />
-              <div className="relative z-10">
-                <p className="text-blue-100 font-bold mb-2 text-sm uppercase tracking-wider">Total Omzet</p>
-                <h3 className="text-3xl md:text-4xl font-black">{formatRp(summary.omzet)}</h3>
-                <p className="text-sm mt-4 font-medium bg-black/10 inline-block px-3 py-1 rounded-full">{filteredTransactions.filter(t=>t.method!=='Belum Bayar').length} Transaksi Selesai</p>
-              </div>
-            </div>
-            <div className="bg-gradient-to-br from-orange-500 to-rose-500 p-6 md:p-8 rounded-3xl text-white shadow-xl shadow-orange-200/50 relative overflow-hidden group hover:scale-[1.02] transition-transform">
-              <Icon name="inventory_2" className="absolute -right-4 -bottom-4 text-[100px] text-white/10 group-hover:scale-110 transition-transform" />
-              <div className="relative z-10">
-                <p className="text-orange-100 font-bold mb-2 text-sm uppercase tracking-wider">Total Harga Modal</p>
-                <h3 className="text-3xl md:text-4xl font-black">{formatRp(summary.modal)}</h3>
-                <p className="text-sm mt-4 font-medium bg-black/10 inline-block px-3 py-1 rounded-full">Aset terjual lunas</p>
-              </div>
-            </div>
-            <div className="bg-gradient-to-br from-emerald-400 to-emerald-600 p-6 md:p-8 rounded-3xl text-white shadow-xl shadow-emerald-200/50 relative overflow-hidden group hover:scale-[1.02] transition-transform">
-              <Icon name="trending_up" className="absolute -right-4 -bottom-4 text-[100px] text-white/10 group-hover:scale-110 transition-transform" />
-              <div className="relative z-10">
-                <p className="text-emerald-100 font-bold mb-2 text-sm uppercase tracking-wider">Laba Bersih</p>
-                <h3 className="text-3xl md:text-4xl font-black">{formatRp(summary.laba)}</h3>
-                <p className="text-sm mt-4 font-medium bg-black/10 inline-block px-3 py-1 rounded-full">Omzet dikurangi Modal</p>
-              </div>
-            </div>
-          </div>
-
+          {/* BAGIAN GRAFIK PIE */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100">
               <PieChart title="Pendapatan per Metode Pembayaran" labels={paymentStats.labels} data={paymentStats.data} colors={['#10b981', '#3b82f6', '#f59e0b']} isCurrency={true}/>
@@ -1438,7 +1451,7 @@
       );
     }
 
-// --- KOMPONEN PRODUK ---
+    // --- KOMPONEN PRODUK (DENGAN SEARCH BAR) ---
     function AdminProducts({ products, setProducts, categories, setCategories, syncToSheets }) {
       const [isModalOpen, setIsModalOpen] = useState(false);
       const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
