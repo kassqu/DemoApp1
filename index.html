@@ -85,7 +85,7 @@
         width: 100% !important; 
         max-width: 320px !important; 
         margin: 0 auto !important; 
-        padding: 10px !important; 
+        padding: 15px 5px !important; /* Tambahkan padding atas agar tidak kepotong mesin printer */
         border: none !important; 
         border-radius: 0 !important; 
         box-shadow: none !important; 
@@ -94,7 +94,7 @@
         max-height: none !important;
       }
       #print-clone * { color: black !important; background: transparent !important; }
-      @page { margin: 0; }
+      @page { margin: 0.5cm; } /* Berikan margin aman untuk printer */
     }
   </style>
 </head>
@@ -466,17 +466,25 @@
         
         // Clone struk agar original UI tidak terganggu
         const clone = original.cloneNode(true);
-        // Paksa clone punya ukuran bebas/penuh, dan sembunyikan di luar layar
-        clone.style.position = 'fixed';
-        clone.style.top = '-9999px';
-        clone.style.left = '-9999px';
+        
+        // Bungkus clone di div absolut agar masuk hitungan dimensi browser tapi tidak terlihat user
+        const wrapper = document.createElement('div');
+        wrapper.style.position = 'absolute';
+        wrapper.style.top = '0';
+        wrapper.style.left = '0';
+        wrapper.style.opacity = '0';
+        wrapper.style.pointerEvents = 'none';
+        wrapper.style.zIndex = '-9999';
+        
+        // Paksa clone punya ukuran bebas/penuh
         clone.style.width = '320px'; // Ukuran standar struk thermal
-        clone.style.height = 'auto';
+        clone.style.height = 'max-content';
         clone.style.overflow = 'visible';
         clone.style.maxHeight = 'none';
-        clone.classList.remove('overflow-y-auto', 'max-h-[95vh]');
+        clone.classList.remove('overflow-y-auto', 'max-h-[95vh]', 'shadow-sm', 'border');
         
-        document.body.appendChild(clone);
+        wrapper.appendChild(clone);
+        document.body.appendChild(wrapper);
         
         // Jalankan html2canvas di clone tersebut
         const canvas = await window.html2canvas(clone, { 
@@ -487,7 +495,7 @@
           logging: false 
         });
         
-        document.body.removeChild(clone);
+        document.body.removeChild(wrapper);
         return canvas;
       };
 
@@ -558,11 +566,13 @@
             
             if(window.Swal) window.Swal.close();
             
+            // Coba Web Share API (Biasa support di HP Android/iOS)
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
               try {
                 await navigator.share({ files: [file], title: `Struk Transaksi`, text: `Terima kasih telah berbelanja!` });
               } catch (e) { console.log('Share dibatalkan user', e); }
             } else { 
+              // Jika di PC / Browser tidak support share file gambar ke WA, jadikan format teks otomatis
               let textItems = lastInvoice.items.map(i => `${i.qty}x ${i.name} = ${formatRp(i.price * i.qty)}`).join('%0A');
               const textContent = `*STRUK TRANSAKSI* %0AID: ${lastInvoice.id} %0ATgl: ${new Date(lastInvoice.date).toLocaleString('id-ID')} %0A%0A${textItems} %0A%0A*TOTAL: ${formatRp(lastInvoice.total)}* %0A%0ATerima kasih!`;
               const waUrl = `https://wa.me/?text=${textContent}`;
@@ -595,8 +605,8 @@
                   <p className="text-xs text-white font-medium leading-tight mt-0.5">Kasir: {safeUserName}</p>
                 </div>
                 <div className="flex lg:hidden items-center gap-1 shrink-0">
-                  <button onClick={() => setShowHistory(true)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"><Icon name="history" className="text-[22px]" /></button>
-                  <button onClick={onLogout} className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-all"><Icon name="logout" className="text-[22px]" /></button>
+                  <button onClick={() => setShowHistory(true)} className="p-2 text-white hover:bg-indigo-400 rounded-xl transition-all"><Icon name="history" className="text-[22px]" /></button>
+                  <button onClick={onLogout} className="p-2 text-red-500 hover:bg-red-100 rounded-xl transition-all"><Icon name="logout" className="text-[22px]" /></button>
                 </div>
               </div>
 
@@ -619,7 +629,7 @@
               </div>
 
               <div className="hidden lg:flex items-center gap-2 shrink-0">
-                <button onClick={() => setShowHistory(true)} className="flex items-center gap-1.5 px-4 py-2 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-all font-bold text-sm">
+                <button onClick={() => setShowHistory(true)} className="flex items-center gap-1.5 px-4 py-2 text-white bg-white hover:bg-white rounded-xl transition-all font-bold text-sm">
                   <Icon name="history" className="text-[18px]" /> Riwayat
                 </button>
                 <button onClick={onLogout} className="flex items-center gap-1.5 px-4 py-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-all font-bold text-sm">
