@@ -634,6 +634,12 @@
             <div className="w-full h-[100px] md:h-[100px] relative overflow-hidden bg-slate-200 shrink-0 border-b border-slate-200">
                {storeConfig?.banner ? (
                  <img src={storeConfig.banner} alt="Banner Promo" crossOrigin="anonymous" className="absolute inset-0 w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-900/90 to-transparent flex items-center p-6">
+                   <div className="text-white">
+                     <h3 className="text-xl font-bold mb-1">Selamat Datang, di {storeConfig?.name || 'KassQu'}!</h3>
+                     <p className="text-sm opacity-90">Selalu nantikan berbagai promo menarik dari kami, ya..</p>
+                   </div>
+                 < /div>
                ) : (
                  <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 font-medium text-sm">
                    <Icon name="image" className="text-4xl mb-2 opacity-50" />
