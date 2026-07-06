@@ -15,8 +15,8 @@
   <script>
     (function() {
       const manifestJSON = {
-        "name": "KassQu Kedai-DemoApp",
-        "short_name": "Kedai-DemoApp",
+        "name": "KassQu Paket Pro - DemoApp",
+        "short_name": "PaketPro-DemoApp",
         "start_url": window.location.href, 
         "display": "standalone",
         "background_color": "#f8fafc",
@@ -75,9 +75,24 @@
     .hide-scrollbar::-webkit-scrollbar { display: none; }
     
     @media print {
-      #root, .no-print { display: none !important; }
-      body { background: white !important; margin: 0 !important; padding: 0 !important; }
-      #print-clone { display: block !important; position: static !important; width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; border: none !important; border-radius: 0 !important; box-shadow: none !important; overflow: visible !important; }
+      #root, .no-print, .swal2-container { display: none !important; }
+      body, html { background: white !important; margin: 0 !important; padding: 0 !important; height: auto !important; overflow: visible !important; }
+      
+      /* Pastikan position relative/static agar tidak kepotong saat print > 1 halaman */
+      #print-clone { 
+        display: block !important; 
+        position: static !important; 
+        width: 100% !important; 
+        max-width: 320px !important; 
+        margin: 0 auto !important; 
+        padding: 10px !important; 
+        border: none !important; 
+        border-radius: 0 !important; 
+        box-shadow: none !important; 
+        overflow: visible !important; 
+        height: auto !important; 
+        max-height: none !important;
+      }
       #print-clone * { color: black !important; background: transparent !important; }
       @page { margin: 0; }
     }
@@ -444,30 +459,123 @@
         } else executeResume();
       };
 
+      // FUNGSI HELPER UNTUK OFF-SCREEN RENDER CANVAS (ANTI POTONG/BLANK)
+      const generateCanvasFromInvoice = async (elementId) => {
+        const original = document.getElementById(elementId);
+        if (!original) throw new Error("Struk tidak ditemukan");
+        
+        // Clone struk agar original UI tidak terganggu
+        const clone = original.cloneNode(true);
+        // Paksa clone punya ukuran bebas/penuh, dan sembunyikan di luar layar
+        clone.style.position = 'fixed';
+        clone.style.top = '-9999px';
+        clone.style.left = '-9999px';
+        clone.style.width = '320px'; // Ukuran standar struk thermal
+        clone.style.height = 'auto';
+        clone.style.overflow = 'visible';
+        clone.style.maxHeight = 'none';
+        clone.classList.remove('overflow-y-auto', 'max-h-[95vh]');
+        
+        document.body.appendChild(clone);
+        
+        // Jalankan html2canvas di clone tersebut
+        const canvas = await window.html2canvas(clone, { 
+          scale: 2, 
+          backgroundColor: '#ffffff', 
+          useCORS: true,
+          allowTaint: true,
+          logging: false 
+        });
+        
+        document.body.removeChild(clone);
+        return canvas;
+      };
+
+      // FUNGSI PRINT (Cetak)
       const handlePrint = () => {
-        const clone = document.getElementById('print-invoice').cloneNode(true); clone.id = 'print-clone'; document.body.appendChild(clone);
-        setTimeout(() => { window.print(); setTimeout(() => { const cloneEl = document.getElementById('print-clone'); if(cloneEl) cloneEl.remove(); }, 1000); }, 300);
+        const original = document.getElementById('print-invoice');
+        if (!original) return;
+        
+        // Hapus clone lama jika sebelumnya error
+        const oldClone = document.getElementById('print-clone');
+        if (oldClone) oldClone.remove();
+
+        // Siapkan node baru untuk dicetak
+        const clone = original.cloneNode(true); 
+        clone.id = 'print-clone'; 
+        
+        // Buang batas tinggi agar cetakan lolos full ke bawah (nggak kepotong 1 halaman)
+        clone.classList.remove('overflow-y-auto', 'max-h-[95vh]', 'shadow-sm', 'border');
+        clone.style.height = 'auto';
+        clone.style.overflow = 'visible';
+        clone.style.maxHeight = 'none';
+
+        document.body.appendChild(clone);
+        
+        setTimeout(() => { 
+          window.print(); 
+          // Bersihkan DOM setelah dialog print selesai/ditutup
+          setTimeout(() => { 
+            const cloneEl = document.getElementById('print-clone'); 
+            if(cloneEl) cloneEl.remove(); 
+          }, 1000); 
+        }, 300);
       };
 
+      // FUNGSI SIMPAN GAMBAR
       const handleDownloadImage = async () => {
-        const element = document.getElementById('print-invoice'); if (!element) return;
+        if(window.Swal) window.Swal.fire({ title: 'Memproses Struk...', text: 'Menyimpan sebagai gambar', allowOutsideClick: false, didOpen: () => window.Swal.showLoading() });
+        
         try {
-          const canvas = await html2canvas(element, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+          const canvas = await generateCanvasFromInvoice('print-invoice');
           const dataUrl = canvas.toDataURL('image/png');
-          const link = document.createElement('a'); link.download = `Struk-${lastInvoice.id}.png`; link.href = dataUrl; link.click();
-        } catch (err) { showAlert({ icon: 'error', title: 'Gagal', text: 'Gagal menyimpan gambar struk.' }); }
+          
+          const link = document.createElement('a'); 
+          link.download = `Struk-${lastInvoice.id}.png`; 
+          link.href = dataUrl; 
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          if(window.Swal) window.Swal.close();
+        } catch (err) { 
+          console.error(err);
+          if(window.Swal) window.Swal.close();
+          showAlert({ icon: 'error', title: 'Gagal', text: 'Gagal merender & menyimpan struk.' }); 
+        }
       };
 
+      // FUNGSI SHARE WA
       const handleShareWA = async () => {
-        const element = document.getElementById('print-invoice'); if (!element) return;
+        if(window.Swal) window.Swal.fire({ title: 'Menyiapkan Share WA...', text: 'Harap tunggu...', allowOutsideClick: false, didOpen: () => window.Swal.showLoading() });
+        
         try {
-          const canvas = await html2canvas(element, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+          const canvas = await generateCanvasFromInvoice('print-invoice');
+          
           canvas.toBlob(async (blob) => {
-            if (!blob) return; const file = new File([blob], `Struk-${lastInvoice.id}.png`, { type: 'image/png' });
-            if (navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ files: [file], title: `Struk Transaksi`, text: `Terima kasih!` });
-            else { handleDownloadImage(); showAlert({ icon: 'info', title: 'Share Manual', text: 'Struk diunduh, kirim manual via WA.' }); }
+            if (!blob) throw new Error("Gagal konversi gambar"); 
+            const file = new File([blob], `Struk-${lastInvoice.id}.png`, { type: 'image/png' });
+            
+            if(window.Swal) window.Swal.close();
+            
+            // Coba Web Share API (Biasa support di HP Android/iOS)
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+              try {
+                await navigator.share({ files: [file], title: `Struk Transaksi`, text: `Terima kasih telah berbelanja!` });
+              } catch (e) { console.log('Share dibatalkan user', e); }
+            } else { 
+              // Jika di PC / Browser tidak support share file gambar ke WA, jadikan format teks otomatis
+              let textItems = lastInvoice.items.map(i => `${i.qty}x ${i.name} = ${formatRp(i.price * i.qty)}`).join('%0A');
+              const textContent = `*STRUK TRANSAKSI* %0AID: ${lastInvoice.id} %0ATgl: ${new Date(lastInvoice.date).toLocaleString('id-ID')} %0A%0A${textItems} %0A%0A*TOTAL: ${formatRp(lastInvoice.total)}* %0A%0ATerima kasih!`;
+              const waUrl = `https://wa.me/?text=${textContent}`;
+              window.open(waUrl, '_blank');
+            }
           }, 'image/png');
-        } catch (err) { showAlert({ icon: 'error', title: 'Gagal', text: 'Sistem gagal membagikan struk.' }); }
+        } catch (err) { 
+          console.error(err);
+          if(window.Swal) window.Swal.close();
+          showAlert({ icon: 'error', title: 'Gagal', text: 'Sistem gagal membagikan struk.' }); 
+        }
       };
 
       return (
@@ -478,7 +586,7 @@
             <div className="bg-white pt-[calc(env(safe-area-inset-top,1.5rem)+1rem)] px-4 md:px-6 pb-3 flex flex-col lg:flex-row items-start lg:items-center justify-between shadow-sm border-b border-slate-100 z-20 shrink-0 gap-4">
               <div className="flex items-center gap-3 w-full lg:w-auto">
                 {storeConfig?.logo ? (
-                  <img src={storeConfig.logo} alt="Logo" className="w-12 h-12 object-contain rounded-xl border border-slate-200 p-0.5 shrink-0 bg-white" />
+                  <img src={storeConfig.logo} alt="Logo" crossOrigin="anonymous" className="w-12 h-12 object-contain rounded-xl border border-slate-200 p-0.5 shrink-0 bg-white" />
                 ) : (
                   <div className="bg-indigo-100 text-indigo-600 w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border border-indigo-200">
                     <Icon name="storefront" className="text-2xl" />
@@ -523,9 +631,9 @@
             </div>
 
             {/* BANNER PROMO */}
-            <div className="w-full h-[180px] md:h-[250px] relative overflow-hidden bg-slate-200 shrink-0 border-b border-slate-200">
+            <div className="w-full h-[100px] md:h-[100px] relative overflow-hidden bg-slate-200 shrink-0 border-b border-slate-200">
                {storeConfig?.banner ? (
-                 <img src={storeConfig.banner} alt="Banner Promo" className="absolute inset-0 w-full h-full object-cover" />
+                 <img src={storeConfig.banner} alt="Banner Promo" crossOrigin="anonymous" className="absolute inset-0 w-full h-full object-cover" />
                ) : (
                  <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 font-medium text-sm">
                    <Icon name="image" className="text-4xl mb-2 opacity-50" />
@@ -561,7 +669,7 @@
                     )}
                     <div className="aspect-square bg-slate-100 relative overflow-hidden">
                       {product.image ? (
-                        <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" onError={(e) => e.target.src='https://via.placeholder.com/200/e2e8f0/94a3b8?text=No+Image'}/>
+                        <img src={product.image} crossOrigin="anonymous" alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" onError={(e) => e.target.src='https://via.placeholder.com/200/e2e8f0/94a3b8?text=No+Image'}/>
                       ) : (
                         <div className="w-full h-full flex items-center justify-center"><Icon name="inventory_2" className="text-6xl text-slate-300 group-hover:scale-110 transition-transform duration-300" /></div>
                       )}
@@ -711,10 +819,12 @@
           {lastInvoice && ReactDOM.createPortal(
             <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
               <div className="bg-slate-100 p-4 rounded-[2rem] w-full max-w-[380px] flex flex-col max-h-[95vh] shadow-2xl">
+                
+                {/* AREA YANG DICETAK / DISIMPAN */}
                 <div id="print-invoice" className="bg-white text-black font-mono text-[13px] p-6 mb-4 overflow-y-auto hide-scrollbar rounded-xl shadow-sm border border-slate-200 relative">
                   <div className="absolute top-0 left-0 right-0 h-1 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxwb2x5Z29uIHBvaW50cz0iMCwwIDQsNCA4LDAgOCw4IDAsOCIgZmlsbD0iI2YxZjVmOSIvPjwvc3ZnPg==')] no-print"></div>
                   <div className="flex flex-col items-center mb-4 pt-2">
-                    {storeConfig.logo && <img src={storeConfig.logo} alt="Logo" className="w-16 h-16 object-contain mb-2 grayscale" />}
+                    {storeConfig.logo && <img src={storeConfig.logo} alt="Logo" crossOrigin="anonymous" className="w-16 h-16 object-contain mb-2 grayscale" />}
                     <h2 className="font-bold text-center text-xl leading-tight uppercase tracking-wider">{storeConfig.name}</h2>
                   </div>
                   <p className="text-center text-xs mb-1 whitespace-pre-wrap leading-tight text-slate-600">{storeConfig.address}</p>
@@ -754,7 +864,9 @@
                   </div>
                   <div className="text-center mt-8 text-[10px] text-slate-500 border-t border-dashed border-slate-300 pt-4">{storeConfig.footer}</div>
                 </div>
-                <div className="grid grid-cols-2 gap-2 mt-auto shrink-0">
+                
+                {/* AREA BUTTONS (PASTI HILANG SAAT DI-PRINT / DI-SAVE) */}
+                <div className="grid grid-cols-2 gap-2 mt-auto shrink-0 no-print">
                   <button onClick={handlePrint} className="bg-slate-800 text-white py-3 rounded-xl font-bold flex justify-center items-center gap-2 text-sm"><Icon name="print"/> Cetak</button>
                   <button onClick={handleShareWA} className="bg-emerald-500 text-white py-3 rounded-xl font-bold flex justify-center items-center gap-2 text-sm"><Icon name="chat"/> Share WA</button>
                   <button onClick={handleDownloadImage} className="bg-blue-500 text-white py-3 rounded-xl font-bold flex justify-center items-center gap-2 text-sm"><Icon name="image"/> Simpan</button>
@@ -818,7 +930,7 @@
     }
 
     // ==========================================
-    // 3. DASHBOARD ADMIN (DIJAMIN LENGKAP 100%)
+    // 3. DASHBOARD ADMIN
     // ==========================================
     function AdminDashboard({ products, setProducts, categories, setCategories, transactions, storeConfig, setStoreConfig, balances, setBalances, users, setUsers, onLogout, syncToSheets }) {
       const [activeTab, setActiveTab] = useState('report');
@@ -833,11 +945,10 @@
       return (
         <div className="flex flex-col md:flex-row h-[100dvh] w-full max-w-[100vw] bg-slate-50 overflow-hidden">
           
-          {/* SIDEBAR ADMIN - TIDAK AKAN HILANG LAGI */}
           <aside className="w-full md:w-72 bg-slate-900 text-white pt-[env(safe-area-inset-top,1rem)] flex flex-col shrink-0 z-20 shadow-xl shadow-slate-900/20">
             <div className="p-4 md:p-6 border-b border-slate-800/80 flex items-center justify-between gap-3 bg-slate-900">
               <div className="flex items-center gap-3">
-                {storeConfig?.logo ? <img src={storeConfig.logo} alt="Logo" className="w-10 h-10 object-contain bg-white rounded-xl p-1.5 shrink-0" /> : <div className="bg-indigo-500 w-10 h-10 rounded-xl flex items-center justify-center shrink-0"><Icon name="storefront" className="text-white text-lg" /></div>}
+                {storeConfig?.logo ? <img src={storeConfig.logo} alt="Logo" crossOrigin="anonymous" className="w-10 h-10 object-contain bg-white rounded-xl p-1.5 shrink-0" /> : <div className="bg-indigo-500 w-10 h-10 rounded-xl flex items-center justify-center shrink-0"><Icon name="storefront" className="text-white text-lg" /></div>}
                 <h2 className="text-lg md:text-xl font-black text-white leading-tight">Admin<br/><span className="text-indigo-400 text-sm font-medium">{storeConfig?.name || 'KassQu'}</span></h2>
               </div>
               <button onClick={onLogout} className="md:hidden bg-red-500/10 text-red-500 hover:bg-red-500 p-2.5 rounded-xl transition-all"><Icon name="logout" className="text-[20px]" /></button>
@@ -930,9 +1041,9 @@
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white/10 backdrop-blur-md border border-white/20 p-6 md:p-8 rounded-3xl text-white shadow-xl relative overflow-hidden group"><div className="relative z-10"><p className="text-white/80 font-bold mb-2 text-sm uppercase tracking-wider">Total Omzet</p><h3 className="text-3xl md:text-4xl font-black text-white drop-shadow-md">{formatRp(summary.omzet)}</h3></div></div>
-                <div className="bg-white/10 backdrop-blur-md border border-white/20 p-6 md:p-8 rounded-3xl text-white shadow-xl relative overflow-hidden group"><div className="relative z-10"><p className="text-white/80 font-bold mb-2 text-sm uppercase tracking-wider">Total Harga Modal</p><h3 className="text-3xl md:text-4xl font-black text-white drop-shadow-md">{formatRp(summary.modal)}</h3></div></div>
-                <div className="bg-white/10 backdrop-blur-md border border-white/20 p-6 md:p-8 rounded-3xl text-white shadow-xl relative overflow-hidden group"><div className="relative z-10"><p className="text-white/80 font-bold mb-2 text-sm uppercase tracking-wider">Laba Bersih</p><h3 className="text-3xl md:text-4xl font-black text-emerald-400 drop-shadow-md">{formatRp(summary.laba)}</h3></div></div>
+                <div className="bg-white/10 backdrop-blur-md border border-amber-400 p-6 md:p-8 rounded-3xl text-white shadow-xl relative overflow-hidden group"><div className="relative z-10"><p className="text-white/80 font-bold mb-2 text-sm uppercase tracking-wider">Total Omzet</p><h3 className="text-3xl md:text-4xl font-black text-amber-400 drop-shadow-md">{formatRp(summary.omzet)}</h3></div></div>
+                <div className="bg-white/10 backdrop-blur-md border border-white p-6 md:p-8 rounded-3xl text-white shadow-xl relative overflow-hidden group"><div className="relative z-10"><p className="text-white/80 font-bold mb-2 text-sm uppercase tracking-wider">Total Harga Modal</p><h3 className="text-3xl md:text-4xl font-black text-white drop-shadow-md">{formatRp(summary.modal)}</h3></div></div>
+                <div className="bg-white/10 backdrop-blur-md border border-emerald-400 p-6 md:p-8 rounded-3xl text-white shadow-xl relative overflow-hidden group"><div className="relative z-10"><p className="text-white/80 font-bold mb-2 text-sm uppercase tracking-wider">Laba Bersih</p><h3 className="text-3xl md:text-4xl font-black text-emerald-400 drop-shadow-md">{formatRp(summary.laba)}</h3></div></div>
               </div>
             </div>
           </div>
@@ -991,7 +1102,7 @@
                 <tbody className="divide-y divide-slate-50">
                   {filteredProducts.map(p => (
                     <tr key={p.id} className="hover:bg-slate-50/80">
-                      <td className="p-4 pl-6"><div className="flex items-center gap-4"><img src={p.image || 'https://via.placeholder.com/100/f1f5f9/94a3b8?text=Img'} className="w-12 h-12 rounded-[10px] object-cover bg-slate-100 border border-slate-200"/><div><p className="font-bold text-slate-800 text-base">{p.name}</p><p className="text-[10px] font-medium text-slate-400 mt-0.5">{p.barcode ? `BC: ${p.barcode}` : p.id}</p></div></div></td>
+                      <td className="p-4 pl-6"><div className="flex items-center gap-4"><img src={p.image || 'https://via.placeholder.com/100/f1f5f9/94a3b8?text=Img'} crossOrigin="anonymous" className="w-12 h-12 rounded-[10px] object-cover bg-slate-100 border border-slate-200"/><div><p className="font-bold text-slate-800 text-base">{p.name}</p><p className="text-[10px] font-medium text-slate-400 mt-0.5">{p.barcode ? `BC: ${p.barcode}` : p.id}</p></div></div></td>
                       <td className="p-4"><span className="bg-slate-100 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600">{p.category}</span></td>
                       <td className="p-4 text-right text-orange-600 font-bold">{formatRp(p.modal)}</td>
                       <td className="p-4 text-right"><div className="text-indigo-600 font-black text-base">{formatRp(p.price)}</div>{p.diskon > 0 && <div className="text-[10px] text-pink-600 font-black bg-pink-50 inline-block px-1.5 py-0.5 rounded mt-1 border border-pink-100">Disc {formatRp(p.diskon)}</div>}</td>
@@ -1004,7 +1115,7 @@
             </div>
           </div>
 
-          {/* FORM MODAL TAMBAH/EDIT PRODUK DENGAN CAMERA FIX */}
+          {/* FORM MODAL TAMBAH/EDIT PRODUK */}
           {isModalOpen && ReactDOM.createPortal(
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
               <div className="bg-white rounded-[2rem] w-full max-w-lg shadow-2xl p-6 md:p-8 max-h-[90vh] overflow-y-auto hide-scrollbar">
@@ -1031,7 +1142,7 @@
                     <label className="block text-xs font-bold text-slate-500 mb-2">Foto Produk</label>
                     <div className="flex items-center gap-4 bg-slate-50 p-3 rounded-2xl border border-dashed">
                       {formData.image ? (
-                        <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-white"><img src={formData.image} className="w-full h-full object-cover"/><button type="button" onClick={() => setFormData({...formData, image: ''})} className="absolute inset-0 bg-black/60 text-white flex items-center justify-center opacity-0 hover:opacity-100"><Icon name="delete"/></button></div>
+                        <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-white"><img src={formData.image} crossOrigin="anonymous" className="w-full h-full object-cover"/><button type="button" onClick={() => setFormData({...formData, image: ''})} className="absolute inset-0 bg-black/60 text-white flex items-center justify-center opacity-0 hover:opacity-100"><Icon name="delete"/></button></div>
                       ) : ( <div className="w-16 h-16 rounded-xl bg-white border flex items-center justify-center text-slate-300"><Icon name="add_photo_alternate" className="text-2xl" /></div> )}
                       <div className="flex-1"><input type="file" accept="image/*" onChange={handleImageUpload} className="w-full text-sm text-slate-500"/></div>
                     </div>
@@ -1160,14 +1271,14 @@
           <form onSubmit={save} className="space-y-5">
             <div className="flex flex-col sm:flex-row items-center gap-5 p-5 bg-slate-50 border rounded-2xl">
               {form.logo ? (
-                <div className="relative w-24 h-24 rounded-xl border bg-white flex items-center justify-center p-2"><img src={form.logo} className="w-full h-full object-contain"/><button type="button" onClick={() => setForm({...form, logo: ''})} className="absolute inset-0 bg-black/60 text-white flex items-center justify-center opacity-0 hover:opacity-100"><Icon name="delete"/></button></div>
+                <div className="relative w-24 h-24 rounded-xl border bg-white flex items-center justify-center p-2"><img src={form.logo} crossOrigin="anonymous" className="w-full h-full object-contain"/><button type="button" onClick={() => setForm({...form, logo: ''})} className="absolute inset-0 bg-black/60 text-white flex items-center justify-center opacity-0 hover:opacity-100"><Icon name="delete"/></button></div>
               ) : ( <div className="w-24 h-24 rounded-xl bg-white border flex items-center justify-center text-slate-300"><Icon name="storefront" className="text-4xl" /></div> )}
               <div className="flex-1 w-full"><label className="block text-xs font-bold mb-2">Upload Logo Baru</label><input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'logo', 250, 250)} className="w-full text-sm text-slate-500"/></div>
             </div>
             <div className="flex flex-col gap-4 p-5 bg-slate-50 border rounded-2xl">
               <label className="block text-xs font-bold">Upload Banner Promo Kasir (Landscape)</label>
               <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'banner', 800, 400)} className="w-full text-sm text-slate-500"/>
-              {form.banner && ( <div className="relative w-full h-32 rounded-xl overflow-hidden"><img src={form.banner} className="w-full h-full object-cover"/><button type="button" onClick={() => setForm({...form, banner: ''})} className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg shadow"><Icon name="delete" className="text-sm"/></button></div> )}
+              {form.banner && ( <div className="relative w-full h-32 rounded-xl overflow-hidden"><img src={form.banner} crossOrigin="anonymous" className="w-full h-full object-cover"/><button type="button" onClick={() => setForm({...form, banner: ''})} className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg shadow"><Icon name="delete" className="text-sm"/></button></div> )}
             </div>
             <div><label className="block text-xs font-bold mb-1.5">Nama Usaha / Toko</label><input required type="text" value={form.name || ''} onChange={e=>setForm({...form, name:e.target.value})} className="w-full p-4 bg-slate-50 border rounded-2xl outline-none font-bold"/></div>
             <div><label className="block text-xs font-bold mb-1.5">Alamat Lengkap</label><textarea required rows="2" value={form.address || ''} onChange={e=>setForm({...form, address:e.target.value})} className="w-full p-4 bg-slate-50 border rounded-2xl outline-none resize-none"/></div>
