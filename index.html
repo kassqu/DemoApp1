@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Kedai-DemoApp</title>
   
-  <!-- Web App Manifest & PWA Meta Tags -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="mobile-web-app-capable" content="yes">
@@ -16,8 +15,8 @@
   <script>
     (function() {
       const manifestJSON = {
-        "name": "KassQu Paket Pro DemoApp",
-        "short_name": "Pro-DemoApp",
+        "name": "KassQu Kedai-DemoApp",
+        "short_name": "Kedai-DemoApp",
         "start_url": window.location.href, 
         "display": "standalone",
         "background_color": "#f8fafc",
@@ -35,7 +34,6 @@
     })();
   </script>
 
-  <!-- Libraries -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
@@ -90,7 +88,6 @@
   <script type="text/babel">
     const { useState, useEffect, useMemo, useRef } = React;
 
-    // --- KONFIGURASI APP ---
     const APP_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx5X0YbLUu0y0aEZ2pZPPjX9IeZrVkgMxnKvQG-FojOHTrqA__ltD9wF8OwZEqmzg3s/exec";
     const formatRp = (number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number || 0);
     const Icon = ({ name, className = "" }) => <span className={`material-symbols-outlined ${className}`}>{name}</span>;
@@ -100,12 +97,9 @@
       else console.warn('Swal not loaded:', options.title);
     };
 
-    // ==========================================
-    // APP CONTAINER
-    // ==========================================
     function App() {
       const [userRole, setUserRole] = useState(null);
-      const [currentUser, setCurrentUser] = useState(''); // Menyimpan nama user (kasir/admin) yg login
+      const [currentUser, setCurrentUser] = useState(''); 
       const [loading, setLoading] = useState(true);
       const [products, setProducts] = useState([]);
       const [categories, setCategories] = useState([]);
@@ -151,7 +145,7 @@
 
       const handleLoginSuccess = (role, userName) => {
         setUserRole(role);
-        setCurrentUser(userName); // Simpan nama kasir
+        setCurrentUser(userName); 
         localStorage.setItem('kassqu_role', role);
         localStorage.setItem('kassqu_user', typeof userName === 'object' ? JSON.stringify(userName) : userName);
       };
@@ -205,9 +199,6 @@
       );
     }
 
-    // ==========================================
-    // 1. LAYAR LOGIN
-    // ==========================================
     function LoginScreen({ onLogin, storeConfig, users }) {
       const [role, setRole] = useState('kasir');
       const [pin, setPin] = useState('');
@@ -224,7 +215,7 @@
           if (matchedUser) {
             const userRoleDb = matchedUser.kode.toLowerCase().trim();
             if (userRoleDb.includes(selectedRole)) {
-              return onLogin(role, matchedUser.nama || matchedUser.kode); // Kirim nama user
+              return onLogin(role, matchedUser.nama || matchedUser.kode); 
             } else {
               return showAlert({ icon: 'error', title: 'Akses Ditolak', text: `Akses ditolak! PIN terdaftar untuk ${userRoleDb.toUpperCase()}.` });
             }
@@ -293,7 +284,6 @@
       const [currentQueueNo, setCurrentQueueNo] = useState(null);
       const [noteModal, setNoteModal] = useState({ isOpen: false, product: null, note: '' });
 
-      // Mencegah munculnya tulisan object JSON di nama kasir
       let safeUserName = currentUser || 'Staff';
       if (typeof currentUser === 'string' && currentUser.includes('{')) {
         try {
@@ -313,9 +303,12 @@
       };
 
       const filteredProducts = useMemo(() => {
+        const query = searchQuery.toLowerCase().trim();
         return products.filter(p => {
           const matchCat = activeCategory === 'Semua' || p.category === activeCategory;
-          const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+          // Cari berdasarkan nama ATAU barcode
+          const matchSearch = String(p.name).toLowerCase().includes(query) || 
+                              String(p.barcode || '').toLowerCase().includes(query);
           return matchCat && matchSearch;
         });
       }, [products, activeCategory, searchQuery]);
@@ -395,13 +388,11 @@
       return (
         <div className="flex h-[100dvh] overflow-hidden bg-slate-100">
           
-          {/* AREA KIRI: PRODUK */}
           <div className="flex-1 flex flex-col h-full overflow-hidden no-print relative bg-slate-50">
 
-            {/* 1. HEADER BARU (WHITE THEME + SEARCH + EXTRA PADDING ATAS) */}
-            <div className="bg-white px-4 md:px-6 pt-6 md:pt-8 pb-3 flex flex-col lg:flex-row items-start lg:items-center justify-between shadow-sm border-b border-slate-100 z-20 shrink-0 gap-4">
+            {/* HEADER KASIR (Search Bar di atas) */}
+            <div className="bg-white pt-[calc(env(safe-area-inset-top,1.5rem)+1rem)] px-4 md:px-6 pb-3 flex flex-col lg:flex-row items-start lg:items-center justify-between shadow-sm border-b border-slate-100 z-20 shrink-0 gap-4">
               
-              {/* Kiri: Info Toko & Kasir */}
               <div className="flex items-center gap-3 w-full lg:w-auto">
                 {storeConfig?.logo ? (
                   <img src={storeConfig.logo} alt="Logo" className="w-12 h-12 object-contain rounded-xl border border-slate-200 p-0.5 shrink-0 bg-white" />
@@ -415,26 +406,25 @@
                   <p className="text-xs text-slate-500 font-medium leading-tight mt-0.5">Kasir: {safeUserName}</p>
                 </div>
                 
-                {/* Action Buttons Mobile */}
                 <div className="flex lg:hidden items-center gap-1 shrink-0">
                   <button onClick={() => setShowHistory(true)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"><Icon name="history" className="text-[22px]" /></button>
                   <button onClick={onLogout} className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-all"><Icon name="logout" className="text-[22px]" /></button>
                 </div>
               </div>
 
-              {/* Tengah: Search Bar */}
+              {/* SEARCH BAR (Sudah Mendukung Barcode) */}
               <div className="flex-1 w-full lg:max-w-2xl relative group">
                 <Icon name="search" className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg group-focus-within:text-indigo-600 transition-colors" />
                 <input 
-                  type="text" placeholder="Cari nama produk..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} 
+                  type="text" placeholder="Cari nama atau scan barcode produk..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} 
                   className="w-full pl-10 pr-10 py-3 bg-slate-50 text-slate-800 rounded-full focus:ring-2 focus:ring-indigo-200 outline-none transition-all font-medium text-sm border border-slate-200 focus:border-indigo-400 shadow-sm" 
+                  autoFocus // Membantu scanner langsung nembak
                 />
-                <button onClick={() => showAlert({ icon: 'info', title: 'Fitur Scanner', text: 'Fitur scanner segera hadir!' })} className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors">
+                <button onClick={() => showAlert({ icon: 'info', title: 'Fitur Scanner Aktif', text: 'Anda bisa langsung menggunakan alat scan barcode, pastikan kursor berada di dalam kotak pencarian.' })} className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors">
                   <Icon name="qr_code_scanner" className="text-lg" />
                 </button>
               </div>
 
-              {/* Kanan: Action Buttons Desktop */}
               <div className="hidden lg:flex items-center gap-2 shrink-0">
                 <button onClick={() => setShowHistory(true)} className="flex items-center gap-1.5 px-4 py-2 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-all font-bold text-sm">
                   <Icon name="history" className="text-[18px]" /> Riwayat
@@ -445,21 +435,20 @@
               </div>
             </div>
 
-            {/* 2. AREA BANNER PROMO (Tanpa Teks / Murni Gambar) */}
-            <div className="px-4 md:px-6 pt-4 pb-2 bg-slate-50 shrink-0">
-               <div className="w-full h-[100px] md:h-[130px] rounded-2xl relative overflow-hidden shadow-sm border border-slate-200 bg-slate-200 group flex items-center justify-center">
-                  {storeConfig?.banner ? (
-                    <img src={storeConfig.banner} alt="Banner Promo" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                  ) : (
-                    <div className="text-slate-400 font-medium text-sm flex flex-col items-center">
-                      <Icon name="image" className="text-3xl mb-1 opacity-50" />
-                      <span>Banner Promo (Edit di Admin)</span>
-                    </div>
-                  )}
-               </div>
+            {/* BANNER PROMO (Tanpa Padding & Radius Kiri Kanan, Tinggi 2x Lipat) */}
+            <div className="w-full h-[180px] md:h-[250px] relative overflow-hidden bg-slate-200 shrink-0 border-b border-slate-200">
+               {storeConfig?.banner ? (
+                 <img src={storeConfig.banner} alt="Banner Promo" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700" />
+               ) : (
+                 <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 font-medium text-sm">
+                   <Icon name="image" className="text-4xl mb-2 opacity-50" />
+                   <span>Banner Promo (Edit di Admin &gt; Toko)</span>
+                   <span className="text-xs opacity-70 mt-1">Gunakan gambar yang melebar (landscape)</span>
+                 </div>
+               )}
             </div>
 
-            {/* 3. KATEGORI (STYLE BARU - SOLID INDIGO / WHITE) */}
+            {/* KATEGORI */}
             <div className="px-4 md:px-6 py-3 flex gap-2 overflow-x-auto hide-scrollbar scroll-momentum shrink-0 border-b border-slate-100 bg-slate-50">
               <button onClick={() => setActiveCategory('Semua')} 
                 className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all shadow-sm flex-shrink-0 border ${activeCategory === 'Semua' ? 'bg-indigo-600 text-white border-indigo-600 shadow-indigo-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>
@@ -473,7 +462,6 @@
               ))}
             </div>
 
-            {/* 4. DAFTAR PRODUK GRID */}
             <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-50 scroll-momentum hide-scrollbar">
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-5 pb-24">
                 {filteredProducts.map(product => (
@@ -520,7 +508,6 @@
               </div>
             </div>
             
-            {/* FAB MOBILE CART */}
             {!isMobileCartOpen && cart.length > 0 && (
               <button onClick={() => setIsMobileCartOpen(true)} className="md:hidden fixed bottom-6 right-6 w-16 h-16 bg-indigo-600 text-white rounded-full shadow-2xl flex items-center justify-center z-40 active:scale-90 transition-transform">
                 <Icon name="shopping_basket" className="text-2xl" />
@@ -529,7 +516,6 @@
             )}
           </div>
 
-          {/* AREA KANAN: KERANJANG */}
           <div className={`${isMobileCartOpen ? 'fixed inset-0 z-50 flex' : 'hidden md:flex'} w-full md:w-[26rem] bg-white flex-col shadow-2xl md:shadow-none md:border-l border-slate-200 no-print transition-all`}>
             
             <div className="bg-white text-slate-800 px-5 pb-4 pt-[calc(env(safe-area-inset-top,1.5rem)+1rem)] shadow-sm flex items-center justify-between shrink-0 border-b border-slate-100 z-10">
@@ -578,7 +564,6 @@
             </div>
           </div>
 
-          {/* MODAL PEMBAYARAN */}
           {showPayment && ReactDOM.createPortal(
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
               <div className="bg-white p-6 md:p-8 rounded-[2rem] w-full max-w-md shadow-2xl transform transition-all scale-100">
@@ -856,9 +841,9 @@
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white/10 backdrop-blur-md border border-white/20 p-6 md:p-8 rounded-3xl text-white shadow-xl relative overflow-hidden group hover:scale-[1.02] transition-transform"><Icon name="payments" className="absolute -right-4 -bottom-4 text-[100px] text-white/5 group-hover:scale-110 transition-transform" /><div className="relative z-10"><p className="text-white/80 font-bold mb-2 text-sm uppercase tracking-wider">Total Omzet</p><h3 className="text-3xl md:text-4xl font-black text-amber-400 drop-shadow-md">{formatRp(summary.omzet)}</h3><p className="text-sm mt-4 font-medium bg-white/10 border border-amber-400 inline-block px-3 py-1 rounded-full">{filteredTransactions.filter(t=>t.method!=='Belum Bayar').length} Transaksi Selesai</p></div></div>
+                <div className="bg-white/10 backdrop-blur-md border border-white/20 p-6 md:p-8 rounded-3xl text-white shadow-xl relative overflow-hidden group hover:scale-[1.02] transition-transform"><Icon name="payments" className="absolute -right-4 -bottom-4 text-[100px] text-white/5 group-hover:scale-110 transition-transform" /><div className="relative z-10"><p className="text-white/80 font-bold mb-2 text-sm uppercase tracking-wider">Total Omzet</p><h3 className="text-3xl md:text-4xl font-black text-white drop-shadow-md">{formatRp(summary.omzet)}</h3><p className="text-sm mt-4 font-medium bg-white/10 border border-white/10 inline-block px-3 py-1 rounded-full">{filteredTransactions.filter(t=>t.method!=='Belum Bayar').length} Transaksi Selesai</p></div></div>
                 <div className="bg-white/10 backdrop-blur-md border border-white/20 p-6 md:p-8 rounded-3xl text-white shadow-xl relative overflow-hidden group hover:scale-[1.02] transition-transform"><Icon name="inventory_2" className="absolute -right-4 -bottom-4 text-[100px] text-white/5 group-hover:scale-110 transition-transform" /><div className="relative z-10"><p className="text-white/80 font-bold mb-2 text-sm uppercase tracking-wider">Total Harga Modal</p><h3 className="text-3xl md:text-4xl font-black text-white drop-shadow-md">{formatRp(summary.modal)}</h3><p className="text-sm mt-4 font-medium bg-white/10 border border-white/10 inline-block px-3 py-1 rounded-full">Aset terjual lunas</p></div></div>
-                <div className="bg-white/10 backdrop-blur-md border border-white/20 p-6 md:p-8 rounded-3xl text-white shadow-xl relative overflow-hidden group hover:scale-[1.02] transition-transform"><Icon name="trending_up" className="absolute -right-4 -bottom-4 text-[100px] text-white/5 group-hover:scale-110 transition-transform" /><div className="relative z-10"><p className="text-white/80 font-bold mb-2 text-sm uppercase tracking-wider">Laba Bersih</p><h3 className="text-3xl md:text-4xl font-black text-emerald-400 drop-shadow-md">{formatRp(summary.laba)}</h3><p className="text-sm mt-4 font-medium bg-white/10 border border-emerald-400 inline-block px-3 py-1 rounded-full">Omzet dikurangi Modal</p></div></div>
+                <div className="bg-white/10 backdrop-blur-md border border-white/20 p-6 md:p-8 rounded-3xl text-white shadow-xl relative overflow-hidden group hover:scale-[1.02] transition-transform"><Icon name="trending_up" className="absolute -right-4 -bottom-4 text-[100px] text-white/5 group-hover:scale-110 transition-transform" /><div className="relative z-10"><p className="text-white/80 font-bold mb-2 text-sm uppercase tracking-wider">Laba Bersih</p><h3 className="text-3xl md:text-4xl font-black text-emerald-400 drop-shadow-md">{formatRp(summary.laba)}</h3><p className="text-sm mt-4 font-medium bg-white/10 border border-white/10 inline-block px-3 py-1 rounded-full">Omzet dikurangi Modal</p></div></div>
               </div>
             </div>
           </div>
@@ -896,7 +881,10 @@
       const [isModalOpen, setIsModalOpen] = useState(false); const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
       const [formData, setFormData] = useState({}); const [searchQuery, setSearchQuery] = useState('');
 
-      const openModal = (p = null) => { setFormData(p ? {...p} : { id: `P${Date.now().toString().slice(-6)}`, name: '', category: categories[0]?.name || '', stock: 0, modal: 0, price: 0, diskon: 0, image: '' }); setIsModalOpen(true); };
+      const openModal = (p = null) => { 
+        setFormData(p ? {...p} : { id: `P${Date.now().toString().slice(-6)}`, name: '', category: categories[0]?.name || '', stock: 0, modal: 0, price: 0, diskon: 0, image: '', barcode: '' }); 
+        setIsModalOpen(true); 
+      };
       
       const handleImageUpload = (e) => {
         const file = e.target.files[0]; if (!file) return; const reader = new FileReader();
@@ -915,7 +903,7 @@
       const addCategory = () => { if (window.Swal) { window.Swal.fire({ title: 'Kategori Baru', input: 'text', showCancelButton: true, confirmButtonColor: '#4f46e5' }).then((res) => { if (res.isConfirmed && res.value) { const newCat = {id: Date.now(), name: res.value}; setCategories([...categories, newCat]); syncToSheets('ADD_CATEGORY', newCat); showAlert({ icon: 'success', title: 'Tersimpan!' }); } }); } }
       const deleteCategory = (id) => { if (window.Swal) { window.Swal.fire({ title: 'Hapus Kategori?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444' }).then((res) => { if (res.isConfirmed) { setCategories(categories.filter(c => c.id !== id)); syncToSheets('DELETE_CATEGORY', { id }); showAlert({ icon: 'success', title: 'Terhapus!' }); } }); } };
 
-      const filteredProducts = useMemo(() => { const query = searchQuery.toLowerCase().trim(); if (!query) return products; return products.filter(p => String(p.name).toLowerCase().includes(query) || String(p.id).toLowerCase().includes(query)); }, [products, searchQuery]);
+      const filteredProducts = useMemo(() => { const query = searchQuery.toLowerCase().trim(); if (!query) return products; return products.filter(p => String(p.name).toLowerCase().includes(query) || String(p.id).toLowerCase().includes(query) || String(p.barcode || '').toLowerCase().includes(query)); }, [products, searchQuery]);
 
       return (
         <div className="space-y-6 animate-fade-in">
@@ -935,7 +923,7 @@
                 <tbody className="divide-y divide-slate-50">
                   {filteredProducts.map(p => (
                     <tr key={p.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="p-4 pl-6"><div className="flex items-center gap-4"><img src={p.image || 'https://via.placeholder.com/100/f1f5f9/94a3b8?text=Img'} className="w-12 h-12 rounded-[10px] object-cover bg-slate-100 border border-slate-200"/><div><p className="font-bold text-slate-800 text-base">{p.name}</p><p className="text-[10px] font-medium text-slate-400 mt-0.5">{p.id}</p></div></div></td>
+                      <td className="p-4 pl-6"><div className="flex items-center gap-4"><img src={p.image || 'https://via.placeholder.com/100/f1f5f9/94a3b8?text=Img'} className="w-12 h-12 rounded-[10px] object-cover bg-slate-100 border border-slate-200"/><div><p className="font-bold text-slate-800 text-base">{p.name}</p><p className="text-[10px] font-medium text-slate-400 mt-0.5">{p.barcode ? `BC: ${p.barcode}` : p.id}</p></div></div></td>
                       <td className="p-4"><span className="bg-slate-100 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600">{p.category}</span></td>
                       <td className="p-4 text-right text-orange-600 font-bold">{formatRp(p.modal)}</td>
                       <td className="p-4 text-right"><div className="text-indigo-600 font-black text-base">{formatRp(p.price)}</div>{p.diskon > 0 && <div className="text-[10px] text-pink-600 font-black bg-pink-50 inline-block px-1.5 py-0.5 rounded mt-1 border border-pink-100">Disc {formatRp(p.diskon)}</div>}</td>
@@ -955,6 +943,16 @@
                 <h3 className="text-2xl font-black mb-6 text-slate-800">{formData.name ? 'Edit Produk' : 'Tambah Produk Baru'}</h3>
                 <form onSubmit={saveProduct} className="space-y-5">
                   <div><label className="block text-xs font-bold text-slate-500 mb-1.5">Nama Produk</label><input required type="text" value={formData.name} onChange={e=>setFormData({...formData, name: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 font-bold transition-all"/></div>
+                  
+                  {/* INPUT BARCODE DITAMBAHKAN DI SINI */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1.5">Kode Barcode Fisik (Opsional)</label>
+                    <div className="relative">
+                      <input type="text" value={formData.barcode || ''} onChange={e=>setFormData({...formData, barcode: e.target.value})} className="w-full p-4 pr-12 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 font-mono font-bold transition-all text-sm" placeholder="Ketik / tembak / scan di sini..."/>
+                      <Icon name="qr_code_scanner" className="absolute right-4 top-1/2 -translate-y-1/2 text-indigo-500" />
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
                     <div><label className="block text-xs font-bold text-slate-500 mb-1.5">Kategori</label><select required value={formData.category} onChange={e=>setFormData({...formData, category: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-500 font-bold text-slate-700"><option value="">-- Pilih --</option>{categories.map(c=><option key={c.id} value={c.name}>{c.name}</option>)}</select></div>
                     <div><label className="block text-xs font-bold text-slate-500 mb-1.5">Stok Fisik</label><input required type="number" min="0" value={formData.stock} onChange={e=>setFormData({...formData, stock: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-500 font-bold text-center"/></div>
@@ -1098,7 +1096,6 @@
           <p className="font-medium text-slate-500 mb-8">Informasi ini akan ditampilkan pada header struk kasir.</p>
           
           <form onSubmit={save} className="space-y-5">
-            {/* Logo Section */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 p-5 bg-slate-50 border border-slate-100 rounded-2xl mb-2">
               {form.logo ? (
                 <div className="relative w-24 h-24 rounded-[1rem] overflow-hidden border border-slate-200 shrink-0 bg-white flex items-center justify-center p-2 shadow-sm"><img src={form.logo} className="w-full h-full object-contain" alt="Logo Preview" /><button type="button" onClick={() => setForm({...form, logo: ''})} className="absolute inset-0 bg-black/60 text-white flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity rounded-[1rem]"><Icon name="delete"/></button></div>
@@ -1111,7 +1108,6 @@
               </div>
             </div>
 
-            {/* Banner Section Baru */}
             <div className="flex flex-col items-start gap-4 p-5 bg-slate-50 border border-slate-100 rounded-2xl mb-5">
               <div className="flex-1 w-full">
                 <label className="block text-xs font-bold text-slate-600 mb-2">Upload Banner Promo Kasir (Rekomendasi Landscape/Lebar)</label>
