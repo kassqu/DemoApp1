@@ -1438,11 +1438,12 @@
       );
     }
 
-    // --- KOMPONEN PRODUK ---
+// --- KOMPONEN PRODUK ---
     function AdminProducts({ products, setProducts, categories, setCategories, syncToSheets }) {
       const [isModalOpen, setIsModalOpen] = useState(false);
       const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
       const [formData, setFormData] = useState({});
+      const [searchQuery, setSearchQuery] = useState(''); // State untuk pencarian
 
       const openModal = (p = null) => {
         setFormData(p ? {...p} : { id: `P${Date.now().toString().slice(-6)}`, name: '', category: categories[0]?.name || '', stock: 0, modal: 0, price: 0, diskon: 0, image: '' });
@@ -1528,19 +1529,43 @@
         }
       };
 
+      // Filter Data Produk (Mencari berdasarkan ID/Barcode atau Nama)
+      const filteredProducts = useMemo(() => {
+        const query = searchQuery.toLowerCase().trim();
+        if (!query) return products;
+        
+        return products.filter(p => 
+          String(p.name).toLowerCase().includes(query) || 
+          String(p.id).toLowerCase().includes(query)
+        );
+      }, [products, searchQuery]);
+
       return (
         <div className="space-y-6 animate-fade-in">
-          <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100">
-            <div>
+          <div className="flex flex-col xl:flex-row justify-between xl:items-center gap-4 bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100">
+            <div className="shrink-0">
                <h2 className="text-2xl md:text-3xl font-black text-slate-800">Katalog Produk</h2>
                <p className="text-slate-500 font-medium mt-1">Kelola data item, harga, dan stok.</p>
             </div>
+            
+            {/* SEARCH BAR DI HEADER ADMIN */}
+            <div className="flex-1 w-full max-w-full xl:max-w-md relative group">
+              <Icon name="search" className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
+              <input 
+                type="text" 
+                placeholder="Cari nama, ID, atau barcode..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-11 pr-4 py-3.5 bg-slate-50 text-slate-800 rounded-2xl focus:ring-4 focus:ring-indigo-400/30 outline-none transition-all font-medium text-sm shadow-sm border border-slate-200 focus:border-indigo-300"
+              />
+            </div>
+
             <div className="flex gap-3 shrink-0">
-              <button onClick={() => setIsCategoryModalOpen(true)} className="bg-slate-100 text-slate-700 px-4 md:px-5 py-3 rounded-2xl font-bold hover:bg-slate-200 flex items-center gap-2 transition-colors">
-                <Icon name="category" className="text-lg"/> <span className="hidden md:inline">Kategori</span>
+              <button onClick={() => setIsCategoryModalOpen(true)} className="flex-1 md:flex-none bg-slate-100 text-slate-700 px-4 md:px-5 py-3.5 rounded-2xl font-bold hover:bg-slate-200 flex items-center justify-center gap-2 transition-colors">
+                <Icon name="category" className="text-lg"/> <span className="hidden sm:inline">Kategori</span>
               </button>
-              <button onClick={() => openModal()} className="bg-indigo-600 text-white px-4 md:px-6 py-3 rounded-2xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 flex items-center gap-2 active:scale-95 transition-all">
-                <Icon name="add" className="text-lg"/> <span className="hidden md:inline">Tambah Produk</span>
+              <button onClick={() => openModal()} className="flex-1 md:flex-none bg-indigo-600 text-white px-4 md:px-6 py-3.5 rounded-2xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 active:scale-95 transition-all">
+                <Icon name="add" className="text-lg"/> <span className="hidden sm:inline">Tambah Produk</span>
               </button>
             </div>
           </div>
@@ -1552,7 +1577,8 @@
                   <tr><th className="p-4 pl-6">Info Produk</th><th className="p-4">Kategori</th><th className="p-4 text-right">H. Modal</th><th className="p-4 text-right">H. Jual</th><th className="p-4 text-center">Stok</th><th className="p-4 text-center pr-6">Aksi</th></tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {products.map(p => (
+                  {/* Gunakan array filteredProducts yang sudah disaring */}
+                  {filteredProducts.map(p => (
                     <tr key={p.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="p-4 pl-6">
                         <div className="flex items-center gap-4">
@@ -1575,7 +1601,13 @@
                       </td>
                     </tr>
                   ))}
-                  {products.length === 0 && <tr><td colSpan="6" className="p-12 text-center text-slate-400 font-medium">Belum ada produk.</td></tr>}
+                  {filteredProducts.length === 0 && (
+                    <tr>
+                      <td colSpan="6" className="p-12 text-center text-slate-400 font-medium">
+                        {searchQuery ? 'Produk tidak ditemukan.' : 'Belum ada produk.'}
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
