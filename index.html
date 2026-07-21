@@ -75,26 +75,45 @@
     ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     .hide-scrollbar::-webkit-scrollbar { display: none; }
     
+    /* CSS CETAK STRUK THERMAL */
     @media print {
-      #root, .no-print, .swal2-container { display: none !important; }
-      body, html { background: white !important; margin: 0 !important; padding: 0 !important; height: auto !important; overflow: visible !important; }
-      
-      #print-clone { 
-        display: block !important; 
-        position: static !important; 
-        width: 100% !important; 
-        max-width: 320px !important; 
-        margin: 0 auto !important; 
-        padding: 100px 0px !important; 
-        border: none !important; 
-        border-radius: 0 !important; 
-        box-shadow: none !important; 
-        overflow: visible !important; 
-        height: auto !important; 
-        max-height: none !important;
+      body * { 
+        visibility: hidden; 
       }
-      #print-clone * { color: black !important; background: transparent !important; }
-      @page { margin: 0cm; }
+      
+      body { 
+        background: white !important; 
+        margin: 0 !important; 
+        padding: 0 !important; 
+      }
+
+      #print-invoice, #print-invoice *, #print-clone, #print-clone * {
+        visibility: visible;
+      }
+
+      #print-invoice, #print-clone {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important; 
+        padding: 60px 20px 0px 20px !important; 
+        border: none !important; 
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        overflow: visible !important;
+      }
+      
+      #print-invoice *, #print-clone * { 
+        color: black !important; 
+        background: transparent !important;
+      }
+
+      /* 3. Menghilangkan margin bawaan browser (header/footer default) */
+      @page { 
+        margin: 0; 
+      }
     }
   </style>
 </head>
