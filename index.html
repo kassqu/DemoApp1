@@ -487,11 +487,12 @@
         document.body.appendChild(wrapper);
         
         // Jalankan html2canvas di clone tersebut
+        // FIX: allowTaint: false agar canvas tidak locked oleh browser (mengatasi SecurityError)
         const canvas = await window.html2canvas(clone, { 
           scale: 2, 
           backgroundColor: '#ffffff', 
           useCORS: true,
-          allowTaint: true,
+          allowTaint: false,
           logging: false 
         });
         
@@ -549,7 +550,7 @@
         } catch (err) { 
           console.error(err);
           if(window.Swal) window.Swal.close();
-          showAlert({ icon: 'error', title: 'Gagal', text: 'Gagal merender & menyimpan struk.' }); 
+          showAlert({ icon: 'error', title: 'Gagal', text: 'Gagal merender & menyimpan struk. Error: ' + err.message }); 
         }
       };
 
@@ -582,7 +583,7 @@
         } catch (err) { 
           console.error(err);
           if(window.Swal) window.Swal.close();
-          showAlert({ icon: 'error', title: 'Gagal', text: 'Sistem gagal membagikan struk.' }); 
+          showAlert({ icon: 'error', title: 'Gagal', text: 'Sistem gagal membagikan struk. Error: ' + err.message }); 
         }
       };
 
@@ -936,7 +937,7 @@
                   <input type="text" autoFocus value={noteModal.note} onChange={e => setNoteModal({...noteModal, note: e.target.value})} placeholder="Contoh: Pedas, karet 2, dll..." className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-500 transition-all text-sm font-medium mb-6" />
                   <div className="flex gap-3">
                     <button type="button" onClick={() => setNoteModal({ isOpen: false, product: null, note: '' })} className="flex-1 py-3.5 bg-slate-100 text-slate-600 font-bold rounded-xl">Batal</button>
-                    <button type="submit" className="flex-[2] py-3.5 bg-indigo-600 text-white font-black rounded-xl shadow-lg shadow-indigo-200">Tombol Tambahkan</button>
+                    <button type="submit" className="flex-[2] py-3.5 bg-indigo-600 text-white font-black rounded-xl shadow-lg shadow-indigo-200">Tambahkan</button>
                   </div>
                 </form>
               </div>
