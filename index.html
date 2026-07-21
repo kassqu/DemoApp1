@@ -34,6 +34,7 @@
     })();
   </script>
 
+  <!-- External Libraries -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
@@ -78,14 +79,13 @@
       #root, .no-print, .swal2-container { display: none !important; }
       body, html { background: white !important; margin: 0 !important; padding: 0 !important; height: auto !important; overflow: visible !important; }
       
-      /* Pastikan position relative/static agar tidak kepotong saat print > 1 halaman */
       #print-clone { 
         display: block !important; 
         position: static !important; 
         width: 100% !important; 
         max-width: 320px !important; 
         margin: 0 auto !important; 
-        padding: 15px 5px !important; /* Tambahkan padding atas agar tidak kepotong mesin printer */
+        padding: 15px 5px !important; 
         border: none !important; 
         border-radius: 0 !important; 
         box-shadow: none !important; 
@@ -94,7 +94,7 @@
         max-height: none !important;
       }
       #print-clone * { color: black !important; background: transparent !important; }
-      @page { margin: 0.5cm; } /* Berikan margin aman untuk printer */
+      @page { margin: 0.5cm; }
     }
   </style>
 </head>
@@ -113,7 +113,6 @@
       else console.warn('Swal not loaded:', options.title);
     };
     
-    // --- KOMPONEN CAMERA SCANNER (FIXED & ROBUST BACK/FRONT AUTO DETECT) ---
     function CameraScanner({ isOpen, onClose, onScan }) {
       const onScanRef = useRef(onScan);
       const onCloseRef = useRef(onClose);
@@ -346,9 +345,6 @@
       );
     }
     
-    // ==========================================
-    // 2. DASHBOARD KASIR
-    // ==========================================
     function KasirDashboard({ products, categories, storeConfig, transactions, currentUser, onLogout, onTransactionSuccess, onDeleteTransaction }) {
       const [cart, setCart] = useState([]);
       const [showPayment, setShowPayment] = useState(false);
@@ -408,7 +404,6 @@
         });
       };
 
-      // Handle pencarian via Keyboard / Gun Scanner & CAMERA Direct Match
       const handleSearchKeyDown = (e, scannedText = null) => {
         if (e.key === 'Enter') {
           const queryValue = scannedText !== null ? scannedText : searchQuery;
@@ -459,45 +454,44 @@
         } else executeResume();
       };
 
-      // FUNGSI HELPER UNTUK OFF-SCREEN RENDER CANVAS (ANTI POTONG/BLANK)
+      // FUNGSI HELPER UNTUK RENDER CANVAS STRUK YANG AMAN & PRESISI
       const generateCanvasFromInvoice = async (elementId) => {
-        const original = document.getElementById(elementId);
-        if (!original) throw new Error("Struk tidak ditemukan");
-        
-        // Clone struk agar original UI tidak terganggu
-        const clone = original.cloneNode(true);
-        
-        // Bungkus clone di div absolut agar masuk hitungan dimensi browser tapi tidak terlihat user
-        const wrapper = document.createElement('div');
-        wrapper.style.position = 'absolute';
-        wrapper.style.top = '0';
-        wrapper.style.left = '0';
-        wrapper.style.opacity = '0';
-        wrapper.style.pointerEvents = 'none';
-        wrapper.style.zIndex = '-9999';
-        
-        // Paksa clone punya ukuran bebas/penuh
-        clone.style.width = '320px'; // Ukuran standar struk thermal
-        clone.style.height = 'max-content';
-        clone.style.overflow = 'visible';
-        clone.style.maxHeight = 'none';
-        clone.classList.remove('overflow-y-auto', 'max-h-[95vh]', 'shadow-sm', 'border');
-        
-        wrapper.appendChild(clone);
-        document.body.appendChild(wrapper);
-        
-        // Jalankan html2canvas di clone tersebut
-        // FIX: allowTaint: false agar gambar aman bisa diexport tanpa diblock (Tainted Canvas Issue)
-        const canvas = await window.html2canvas(clone, { 
-          scale: 2, 
-          backgroundColor: '#ffffff', 
-          useCORS: true,
-          allowTaint: false,
-          logging: false 
-        });
-        
-        document.body.removeChild(wrapper);
-        return canvas;
+        const el = document.getElementById(elementId);
+        if (!el) throw new Error("Elemen struk tidak ditemukan!");
+
+        if (!window.html2canvas) {
+          throw new Error("Library html2canvas belum siap/gagal dimuat!");
+        }
+
+        // Simpan style asli
+        const originalMaxHeight = el.style.maxHeight;
+        const originalHeight = el.style.height;
+        const originalOverflow = el.style.overflow;
+
+        try {
+          // Buka max height & overflow sementara agar elemen merender utuh di layar
+          el.style.maxHeight = 'none';
+          el.style.height = 'auto';
+          el.style.overflow = 'visible';
+
+          // Render canvas langsung dari elemen ter-render aktif
+          const canvas = await window.html2canvas(el, {
+            scale: 2,
+            backgroundColor: '#ffffff',
+            useCORS: true,
+            allowTaint: true,
+            logging: false,
+            imageTimeout: 15000,
+            ignoreElements: (node) => node.classList && node.classList.contains('no-print')
+          });
+
+          return canvas;
+        } finally {
+          // Kembalikan style seperti semula
+          el.style.maxHeight = originalMaxHeight;
+          el.style.height = originalHeight;
+          el.style.overflow = originalOverflow;
+        }
       };
 
       // FUNGSI PRINT (Cetak)
@@ -505,15 +499,12 @@
         const original = document.getElementById('print-invoice');
         if (!original) return;
         
-        // Hapus clone lama jika sebelumnya error
         const oldClone = document.getElementById('print-clone');
         if (oldClone) oldClone.remove();
 
-        // Siapkan node baru untuk dicetak
         const clone = original.cloneNode(true); 
         clone.id = 'print-clone'; 
         
-        // Buang batas tinggi agar cetakan lolos full ke bawah (nggak kepotong 1 halaman)
         clone.classList.remove('overflow-y-auto', 'max-h-[95vh]', 'shadow-none', 'border');
         clone.style.height = 'auto';
         clone.style.overflow = 'visible';
@@ -523,7 +514,6 @@
         
         setTimeout(() => { 
           window.print(); 
-          // Bersihkan DOM setelah dialog print selesai/ditutup
           setTimeout(() => { 
             const cloneEl = document.getElementById('print-clone'); 
             if(cloneEl) cloneEl.remove(); 
@@ -533,57 +523,108 @@
 
       // FUNGSI SIMPAN GAMBAR
       const handleDownloadImage = async () => {
-        if(window.Swal) window.Swal.fire({ title: 'Memproses Struk...', text: 'Menyimpan sebagai gambar', allowOutsideClick: false, didOpen: () => window.Swal.showLoading() });
+        if (!lastInvoice) return;
+
+        if(window.Swal) {
+          window.Swal.fire({ 
+            title: 'Memproses Struk...', 
+            text: 'Menyiapkan gambar struk', 
+            allowOutsideClick: false, 
+            didOpen: () => window.Swal.showLoading() 
+          });
+        }
         
         try {
           const canvas = await generateCanvasFromInvoice('print-invoice');
-          const dataUrl = canvas.toDataURL('image/png');
+          const dataUrl = canvas.toDataURL('image/png', 1.0);
           
           const link = document.createElement('a'); 
-          link.download = `Struk-${lastInvoice.id}.png`; 
+          link.download = `Struk-${lastInvoice.id || Date.now()}.png`; 
           link.href = dataUrl; 
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
           
           if(window.Swal) window.Swal.close();
+          showAlert({ icon: 'success', title: 'Berhasil!', text: 'Gambar struk telah disimpan.' });
         } catch (err) { 
-          console.error(err);
+          console.error("Download Image Error:", err);
           if(window.Swal) window.Swal.close();
-          showAlert({ icon: 'error', title: 'Gagal', text: 'Gagal merender & menyimpan struk. ' + err.message }); 
+          showAlert({ icon: 'error', title: 'Gagal Simpan', text: err.message || 'Gagal merender gambar struk.' }); 
         }
       };
 
       // FUNGSI SHARE WA
       const handleShareWA = async () => {
-        if(window.Swal) window.Swal.fire({ title: 'Menyiapkan Share WA...', text: 'Harap tunggu...', allowOutsideClick: false, didOpen: () => window.Swal.showLoading() });
-        
+        if (!lastInvoice) return;
+
+        if(window.Swal) {
+          window.Swal.fire({ 
+            title: 'Menyiapkan Share WA...', 
+            text: 'Harap tunggu sebentar...', 
+            allowOutsideClick: false, 
+            didOpen: () => window.Swal.showLoading() 
+          });
+        }
+
+        // Teks format WhatsApp sebagai fallback utama/cadangan
+        const formattedDate = new Date(lastInvoice.date).toLocaleString('id-ID');
+        let textItems = (lastInvoice.items || []).map(i => `• ${i.qty}x ${i.name} = ${formatRp(i.price * i.qty)}`).join('%0A');
+        const textMessage = `*${(storeConfig?.name || 'KassQu').toUpperCase()}*%0A` +
+                            `*STRUK TRANSAKSI*%0A` +
+                            `--------------------------------%0A` +
+                            `*No. Transaksi:* ${lastInvoice.id}%0A` +
+                            `*Tanggal:* ${formattedDate}%0A` +
+                            `*Kasir:* ${safeUserName}%0A` +
+                            `--------------------------------%0A` +
+                            `${textItems}%0A` +
+                            `--------------------------------%0A` +
+                            `*TOTAL: ${formatRp(lastInvoice.total)}*%0A` +
+                            `*Metode:* ${lastInvoice.method}%0A` +
+                            (lastInvoice.method === 'Cash' ? `*Bayar:* ${formatRp(lastInvoice.payment)}%0A*Kembali:* ${formatRp(lastInvoice.change)}%0A` : '') +
+                            `--------------------------------%0A` +
+                            `_${storeConfig?.footer || 'Terima kasih atas kunjungan Anda!'}_`;
+
+        const fallbackToWAText = () => {
+          if (window.Swal) window.Swal.close();
+          const waUrl = `https://api.whatsapp.com/send?text=${textMessage}`;
+          window.open(waUrl, '_blank');
+        };
+
         try {
           const canvas = await generateCanvasFromInvoice('print-invoice');
           
-          canvas.toBlob(async (blob) => {
-            if (!blob) throw new Error("Gagal konversi gambar"); 
-            const file = new File([blob], `Struk-${lastInvoice.id}.png`, { type: 'image/png' });
-            
-            if(window.Swal) window.Swal.close();
-            
-            // Coba Web Share API (Biasa support di HP Android/iOS)
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-              try {
-                await navigator.share({ files: [file], title: `Struk Transaksi`, text: `Terima kasih telah berbelanja!` });
-              } catch (e) { console.log('Share dibatalkan user', e); }
-            } else { 
-              // Jika di PC / Browser tidak support share file gambar ke WA, jadikan format teks otomatis
-              let textItems = lastInvoice.items.map(i => `${i.qty}x ${i.name} = ${formatRp(i.price * i.qty)}`).join('%0A');
-              const textContent = `*STRUK TRANSAKSI* %0AID: ${lastInvoice.id} %0ATgl: ${new Date(lastInvoice.date).toLocaleString('id-ID')} %0A%0A${textItems} %0A%0A*TOTAL: ${formatRp(lastInvoice.total)}* %0A%0ATerima kasih!`;
-              const waUrl = `https://wa.me/?text=${textContent}`;
-              window.open(waUrl, '_blank');
+          // Convert canvas to Blob via Promise wrapper
+          const blob = await new Promise((resolve, reject) => {
+            canvas.toBlob((b) => b ? resolve(b) : reject(new Error("Konversi gambar ke blob gagal")), 'image/png');
+          });
+
+          const file = new File([blob], `Struk-${lastInvoice.id}.png`, { type: 'image/png' });
+
+          if (window.Swal) window.Swal.close();
+
+          // Coba Web Share API jika didukung browser HP
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({
+                files: [file],
+                title: `Struk Transaksi ${lastInvoice.id}`,
+                text: `Struk transaksi dari ${storeConfig?.name || 'KassQu'}`
+              });
+            } catch (shareErr) {
+              // Jika user membatalkan dialog share, abaikan
+              if (shareErr.name === 'AbortError') return;
+              // Jika gagal share file, jalankan fallback WA teks
+              fallbackToWAText();
             }
-          }, 'image/png');
-        } catch (err) { 
-          console.error(err);
-          if(window.Swal) window.Swal.close();
-          showAlert({ icon: 'error', title: 'Gagal', text: 'Sistem gagal membagikan struk. ' + err.message }); 
+          } else {
+            // Jika Web Share file tidak didukung, langsung buka WhatsApp teks
+            fallbackToWAText();
+          }
+        } catch (err) {
+          console.error("Share WA error:", err);
+          // Jika render gambar gagal, tetap beri pelayanan dengan fallback share teks WA
+          fallbackToWAText();
         }
       };
 
@@ -883,7 +924,7 @@
                   <div className="text-center mt-8 text-[10px] text-slate-500 border-t border-dashed border-slate-300 pt-4">{storeConfig.footer}</div>
                 </div>
                 
-                {/* AREA BUTTONS (PASTI HILANG SAAT DI-PRINT / DI-SAVE) */}
+                {/* AREA BUTTONS (TIDAK MASUK SAAT PRINT / SIMPAN) */}
                 <div className="grid grid-cols-2 gap-2 mt-auto shrink-0 no-print">
                   <button onClick={handlePrint} className="bg-slate-800 text-white py-3 rounded-xl font-bold flex justify-center items-center gap-2 text-sm"><Icon name="print"/> Cetak</button>
                   <button onClick={handleShareWA} className="bg-emerald-500 text-white py-3 rounded-xl font-bold flex justify-center items-center gap-2 text-sm"><Icon name="chat"/> Share WA</button>
@@ -947,9 +988,6 @@
       );
     }
 
-    // ==========================================
-    // 3. DASHBOARD ADMIN
-    // ==========================================
     function AdminDashboard({ products, setProducts, categories, setCategories, transactions, storeConfig, setStoreConfig, balances, setBalances, users, setUsers, onLogout, syncToSheets }) {
       const [activeTab, setActiveTab] = useState('report');
       const tabs = [
@@ -995,7 +1033,6 @@
       );
     }
 
-    // --- SUB KOMPONEN CHART ---
     function PieChart({ data, labels, title, colors, isCurrency = false }) {
       const chartRef = useRef(null); const chartInstance = useRef(null);
       useEffect(() => {
@@ -1019,7 +1056,6 @@
       return <div className="flex flex-col h-full"><h3 className="font-bold text-slate-700 mb-4">{title}</h3><div className="relative flex-1 min-h-[220px]"><canvas ref={chartRef}></canvas></div></div>;
     }
 
-    // --- SUB KOMPONEN LAPORAN ---
     function AdminReport({ transactions, storeConfig }) {
       const [filter, setFilter] = useState('today');
       const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
@@ -1073,7 +1109,6 @@
       );
     }
 
-    // --- SUB KOMPONEN PRODUK ---
     function AdminProducts({ products, setProducts, categories, setCategories, syncToSheets }) {
       const [isModalOpen, setIsModalOpen] = useState(false); const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
       const [formData, setFormData] = useState({}); const [searchQuery, setSearchQuery] = useState(''); const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -1197,7 +1232,6 @@
       );
     }
 
-    // --- SUB KOMPONEN KAS & LACI TOKO ---
     function AdminBalances({ balances, setBalances, syncToSheets }) {
       const [editAmount, setEditAmount] = useState('');
       const handleUpdate = (e) => { e.preventDefault(); const val = parseInt(editAmount.replace(/\D/g, '')) || 0; const newBalances = { ...balances, kembalian: val }; setBalances(newBalances); syncToSheets('UPDATE_BALANCES', newBalances); setEditAmount(''); showAlert({ icon: 'success', title: 'Berhasil', text: 'Modal laci telah diperbarui!' }); };
@@ -1212,7 +1246,6 @@
       );
     }
 
-    // --- SUB KOMPONEN PEGAWAI ---
     function AdminUsers({ users, setUsers, syncToSheets }) {
       const [isModalOpen, setIsModalOpen] = useState(false); const [formData, setFormData] = useState({});
       const openModal = (u = null) => { setFormData(u ? {...u} : { id: `USR-${Date.now()}`, kode: '', nama: '', pin: '', status: 'aktif' }); setIsModalOpen(true); };
@@ -1261,7 +1294,6 @@
       );
     }
 
-    // --- SUB KOMPONEN SETTING TOKO ---
     function AdminSettings({ storeConfig, setStoreConfig, syncToSheets }) {
       const [form, setForm] = useState(storeConfig);
       const save = (e) => { e.preventDefault(); setStoreConfig(form); syncToSheets('UPDATE_SETTINGS', form); showAlert({icon:'success', title:'Tersimpan'}); };
@@ -1290,24 +1322,27 @@
             <div className="flex flex-col sm:flex-row items-center gap-5 p-5 bg-slate-50 border rounded-2xl">
               {form.logo ? (
                 <div className="relative w-24 h-24 rounded-xl border bg-white flex items-center justify-center p-2"><img src={form.logo} crossOrigin="anonymous" className="w-full h-full object-contain"/><button type="button" onClick={() => setForm({...form, logo: ''})} className="absolute inset-0 bg-black/60 text-white flex items-center justify-center opacity-0 hover:opacity-100"><Icon name="delete"/></button></div>
-              ) : ( <div className="w-24 h-24 rounded-xl bg-white border flex items-center justify-center text-slate-300"><Icon name="storefront" className="text-4xl" /></div> )}
-              <div className="flex-1 w-full"><label className="block text-xs font-bold mb-2">Upload Logo Baru</label><input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'logo', 250, 250)} className="w-full text-sm text-slate-500"/></div>
+              ) : (
+                <div className="w-24 h-24 rounded-xl border bg-white flex flex-col items-center justify-center text-slate-300"><Icon name="storefront" className="text-3xl"/><span className="text-[10px] font-bold">Logo Toko</span></div>
+              )}
+              <div className="flex-1 text-center sm:text-left"><label className="block text-xs font-bold text-slate-600 mb-1">Unggah Logo Toko</label><p className="text-[11px] text-slate-400 mb-3">Format JPG/PNG, maks 300px</p><input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'logo', 300, 300)} className="text-xs text-slate-500" /></div>
             </div>
-            <div className="flex flex-col gap-4 p-5 bg-slate-50 border rounded-2xl">
-              <label className="block text-xs font-bold">Upload Banner Promo Kasir (Landscape)</label>
-              <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'banner', 800, 400)} className="w-full text-sm text-slate-500"/>
-              {form.banner && ( <div className="relative w-full h-32 rounded-xl overflow-hidden"><img src={form.banner} crossOrigin="anonymous" className="w-full h-full object-cover"/><button type="button" onClick={() => setForm({...form, banner: ''})} className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg shadow"><Icon name="delete" className="text-sm"/></button></div> )}
+
+            <div><label className="block text-xs font-bold text-slate-500 mb-1.5">Nama Toko</label><input required value={form.name || ''} onChange={e=>setForm({...form, name: e.target.value})} className="w-full p-4 bg-slate-50 border rounded-2xl outline-none font-bold" /></div>
+            <div><label className="block text-xs font-bold text-slate-500 mb-1.5">Alamat Lengkap</label><textarea required rows="2" value={form.address || ''} onChange={e=>setForm({...form, address: e.target.value})} className="w-full p-4 bg-slate-50 border rounded-2xl outline-none font-bold text-sm" /></div>
+            <div><label className="block text-xs font-bold text-slate-500 mb-1.5">No. Telepon / WhatsApp</label><input required value={form.phone || ''} onChange={e=>setForm({...form, phone: e.target.value})} className="w-full p-4 bg-slate-50 border rounded-2xl outline-none font-bold" /></div>
+            <div><label className="block text-xs font-bold text-slate-500 mb-1.5">Pesan Kaki Struk (Footer)</label><input required value={form.footer || ''} onChange={e=>setForm({...form, footer: e.target.value})} className="w-full p-4 bg-slate-50 border rounded-2xl outline-none font-bold" /></div>
+            
+            <div className="p-5 bg-slate-50 border rounded-2xl space-y-3">
+              <label className="block text-xs font-bold text-slate-600">Banner Promo Kasir</label>
+              {form.banner && <img src={form.banner} crossOrigin="anonymous" className="w-full h-24 object-cover rounded-xl border mb-2"/>}
+              <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'banner', 800, 300)} className="text-xs text-slate-500" />
             </div>
-            <div><label className="block text-xs font-bold mb-1.5">Nama Usaha / Toko</label><input required type="text" value={form.name || ''} onChange={e=>setForm({...form, name:e.target.value})} className="w-full p-4 bg-slate-50 border rounded-2xl outline-none font-bold"/></div>
-            <div><label className="block text-xs font-bold mb-1.5">Alamat Lengkap</label><textarea required rows="2" value={form.address || ''} onChange={e=>setForm({...form, address:e.target.value})} className="w-full p-4 bg-slate-50 border rounded-2xl outline-none resize-none"/></div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div><label className="block text-xs font-bold mb-1.5">Kontak (Telp / WA)</label><input required type="text" value={form.phone || ''} onChange={e=>setForm({...form, phone:e.target.value})} className="w-full p-4 bg-slate-50 border rounded-2xl outline-none font-bold"/></div>
-              <div><label className="block text-xs font-bold mb-1.5">Pesan Penutup (Footer)</label><input required type="text" value={form.footer || ''} onChange={e=>setForm({...form, footer:e.target.value})} className="w-full p-4 bg-slate-50 border rounded-2xl outline-none"/></div>
-            </div>
-            <button type="submit" className="w-full bg-slate-800 text-white p-4 rounded-2xl font-black mt-4 flex justify-center items-center gap-2"><Icon name="save" /> SIMPAN PERUBAHAN</button>
+
+            <button type="submit" className="w-full bg-indigo-600 text-white p-4 rounded-2xl font-black shadow-lg">SIMPAN PROFIL TOKO</button>
           </form>
         </div>
-      )
+      );
     }
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
