@@ -487,7 +487,7 @@
         document.body.appendChild(wrapper);
         
         // Jalankan html2canvas di clone tersebut
-        // FIX: allowTaint: false agar canvas tidak locked oleh browser (mengatasi SecurityError)
+        // FIX: allowTaint: false agar gambar aman bisa diexport tanpa diblock (Tainted Canvas Issue)
         const canvas = await window.html2canvas(clone, { 
           scale: 2, 
           backgroundColor: '#ffffff', 
@@ -550,7 +550,7 @@
         } catch (err) { 
           console.error(err);
           if(window.Swal) window.Swal.close();
-          showAlert({ icon: 'error', title: 'Gagal', text: 'Gagal merender & menyimpan struk. Error: ' + err.message }); 
+          showAlert({ icon: 'error', title: 'Gagal', text: 'Gagal merender & menyimpan struk. ' + err.message }); 
         }
       };
 
@@ -583,7 +583,7 @@
         } catch (err) { 
           console.error(err);
           if(window.Swal) window.Swal.close();
-          showAlert({ icon: 'error', title: 'Gagal', text: 'Sistem gagal membagikan struk. Error: ' + err.message }); 
+          showAlert({ icon: 'error', title: 'Gagal', text: 'Sistem gagal membagikan struk. ' + err.message }); 
         }
       };
 
@@ -718,7 +718,7 @@
             </div>
             
             {!isMobileCartOpen && cart.length > 0 && (
-              <button onClick={() => App.setIsMobileCartOpen(true)} className="md:hidden fixed bottom-6 right-6 w-16 h-16 bg-indigo-600 text-white rounded-full shadow-2xl flex items-center justify-center z-40 active:scale-90 transition-transform">
+              <button onClick={() => setIsMobileCartOpen(true)} className="md:hidden fixed bottom-6 right-6 w-16 h-16 bg-indigo-600 text-white rounded-full shadow-2xl flex items-center justify-center z-40 active:scale-90 transition-transform">
                 <Icon name="shopping_basket" className="text-2xl" />
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-black w-6 h-6 rounded-full flex items-center justify-center border-2 border-white shadow-sm">{cart.reduce((a,b)=>a+b.qty,0)}</span>
               </button>
@@ -937,7 +937,7 @@
                   <input type="text" autoFocus value={noteModal.note} onChange={e => setNoteModal({...noteModal, note: e.target.value})} placeholder="Contoh: Pedas, karet 2, dll..." className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-500 transition-all text-sm font-medium mb-6" />
                   <div className="flex gap-3">
                     <button type="button" onClick={() => setNoteModal({ isOpen: false, product: null, note: '' })} className="flex-1 py-3.5 bg-slate-100 text-slate-600 font-bold rounded-xl">Batal</button>
-                    <button type="submit" className="flex-[2] py-3.5 bg-indigo-600 text-white font-black rounded-xl shadow-lg shadow-indigo-200">Tambahkan</button>
+                    <button type="submit" className="flex-[2] py-3.5 bg-indigo-600 text-white font-black rounded-xl shadow-lg shadow-indigo-200">Tombol Tambahkan</button>
                   </div>
                 </form>
               </div>
