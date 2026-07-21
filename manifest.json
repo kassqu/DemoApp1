@@ -1,7 +1,7 @@
 {
-  "name": "DemoApp1",
-  "short_name": "DemoApp1",
-  "description": "Aplikasi Kasir Modern By Fika Naka",
+  "name": "DemoPaketPro",
+  "short_name": "DemoPaketPro",
+  "description": "Aplikasi Kasir Modern By KassQu",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#4f46e5",
